@@ -4,7 +4,7 @@ const db = require('./db');
 const { sendNotification } = require('./notifier');
 
 async function runCheck() {
-  console.log('[' + new Date().toISOString() + '] Running price check...');
+  console.log('[' + new Date().toLocaleString('cs-CZ', { timeZone: 'Europe/Prague' }) + '] Running price check...');
 
   let prices;
   try {
