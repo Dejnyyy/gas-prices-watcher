@@ -1,7 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-const URL = 'https://www.tank-ono.cz/cz/index.php?page=cenik';
+const CENIK_URL = 'https://www.tank-ono.cz/cz/index.php?page=cenik';
 
 /**
  * Parse a CZK price string like "38,90" or "---" into a float or null.
@@ -82,8 +82,12 @@ function parsePrices(html) {
 }
 
 async function fetchPrices() {
-  const response = await axios.get(URL, { timeout: 10000 });
-  return parsePrices(response.data);
+  try {
+    const response = await axios.get(CENIK_URL, { timeout: 10000 });
+    return parsePrices(response.data);
+  } catch {
+    return null;
+  }
 }
 
 module.exports = { fetchPrices, parsePrices };
