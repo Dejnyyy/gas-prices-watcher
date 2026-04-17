@@ -1,0 +1,44 @@
+const mysql = require('mysql2/promise');
+require('dotenv').config();
+
+const pool = mysql.createPool(process.env.DATABASE_URL);
+
+async function saveCheck(prices, changed) {
+  await pool.execute(
+    'INSERT INTO price_checks (checked_at, natural95, diesel, lpg, changed) VALUES (NOW(), ?, ?, ?, ?)',
+    [prices.natural95, prices.diesel, prices.lpg, changed ? 1 : 0]
+  );
+}
+
+async function getLatest() {
+  const [rows] = await pool.execute(
+    'SELECT * FROM price_checks ORDER BY checked_at DESC LIMIT 1'
+  );
+  return rows[0] || null;
+}
+
+async function getHistory(days = 30) {
+  const [rows] = await pool.execute(
+    'SELECT * FROM price_checks WHERE changed = 1 AND checked_at >= DATE_SUB(NOW(), INTERVAL ? DAY) ORDER BY checked_at ASC',
+    [days]
+  );
+  return rows;
+}
+
+async function addSubscriber(email) {
+  await pool.execute(
+    'INSERT IGNORE INTO subscribers (email) VALUES (?)',
+    [email]
+  );
+}
+
+async function removeSubscriber(email) {
+  await pool.execute('DELETE FROM subscribers WHERE email = ?', [email]);
+}
+
+async function getSubscribers() {
+  const [rows] = await pool.execute('SELECT email FROM subscribers');
+  return rows.map((r) => r.email);
+}
+
+module.exports = { saveCheck, getLatest, getHistory, addSubscriber, removeSubscriber, getSubscribers };
