@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS price_checks (
   checked_at DATETIME NOT NULL,
   natural95 DECIMAL(5,2) NOT NULL,
   diesel DECIMAL(5,2) NOT NULL,
-  lpg DECIMAL(5,2) NOT NULL,
   changed TINYINT(1) NOT NULL DEFAULT 0
 );
 

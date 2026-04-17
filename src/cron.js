@@ -27,12 +27,10 @@ async function runCheck() {
       const oldPrices = {
         natural95: parseFloat(latest.natural95),
         diesel: parseFloat(latest.diesel),
-        lpg: parseFloat(latest.lpg),
       };
       changed =
         oldPrices.natural95 !== prices.natural95 ||
-        oldPrices.diesel !== prices.diesel ||
-        oldPrices.lpg !== prices.lpg;
+        oldPrices.diesel !== prices.diesel;
 
       if (changed) {
         await sendNotification(oldPrices, prices);

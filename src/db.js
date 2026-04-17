@@ -5,8 +5,8 @@ const pool = mysql.createPool(process.env.DATABASE_URL);
 
 async function saveCheck(prices, changed) {
   await pool.execute(
-    'INSERT INTO price_checks (checked_at, natural95, diesel, lpg, changed) VALUES (NOW(), ?, ?, ?, ?)',
-    [prices.natural95, prices.diesel, prices.lpg, changed ? 1 : 0]
+    'INSERT INTO price_checks (checked_at, natural95, diesel, changed) VALUES (NOW(), ?, ?, ?)',
+    [prices.natural95, prices.diesel, changed ? 1 : 0]
   );
 }
 
@@ -19,7 +19,7 @@ async function getLatest() {
 
 async function getHistory(days = 30) {
   const [rows] = await pool.execute(
-    'SELECT * FROM price_checks WHERE changed = 1 AND checked_at >= DATE_SUB(NOW(), INTERVAL ? DAY) ORDER BY checked_at ASC',
+    'SELECT * FROM price_checks WHERE checked_at >= DATE_SUB(NOW(), INTERVAL ? DAY) ORDER BY checked_at ASC LIMIT 300',
     [days]
   );
   return rows;

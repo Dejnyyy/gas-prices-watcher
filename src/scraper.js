@@ -23,7 +23,6 @@ function parsePrice(raw) {
  * Column image patterns:
  *   natural95 → n95_c.gif
  *   diesel    → d_c.gif  (NOT d_plus)
- *   lpg       → lpg_c.gif
  */
 function parsePrices(html) {
   try {
@@ -38,7 +37,6 @@ function parsePrices(html) {
 
     let natural95Col = -1;
     let dieselCol = -1;
-    let lpgCol = -1;
 
     headers.each((i, th) => {
       const img = $(th).find('img');
@@ -46,10 +44,9 @@ function parsePrices(html) {
       const src = img.attr('src') || '';
       if (/n95_c\.gif/.test(src)) natural95Col = i;
       else if (/\/d_c\.gif/.test(src)) dieselCol = i;
-      else if (/lpg_c\.gif/.test(src)) lpgCol = i;
     });
 
-    if (natural95Col === -1 || dieselCol === -1 || lpgCol === -1) return null;
+    if (natural95Col === -1 || dieselCol === -1) return null;
 
     const prices = {};
 
@@ -68,10 +65,9 @@ function parsePrices(html) {
 
       tryExtract(natural95Col, 'natural95');
       tryExtract(dieselCol, 'diesel');
-      tryExtract(lpgCol, 'lpg');
     });
 
-    if (prices.natural95 === undefined || prices.diesel === undefined || prices.lpg === undefined) {
+    if (prices.natural95 === undefined || prices.diesel === undefined) {
       return null;
     }
 

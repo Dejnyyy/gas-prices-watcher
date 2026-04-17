@@ -3,62 +3,106 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tank ONO — Sledování cen</title>
+  <title>Dejnyho Hlídač</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1>Tank ONO — Ceny paliv</h1>
 
-    <section class="cards">
-      <div class="card">
-        <div class="card-label">Natural 95</div>
-        <div class="card-price" id="price-natural95">...</div>
-        <div class="card-unit">Kč / l</div>
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-top">
+        <div class="brand">Dejnyho Hlídač<span class="brand-dot">.</span></div>
+        <div class="live-badge">
+          <span class="live-dot"></span>
+          živě
+        </div>
       </div>
-      <div class="card">
-        <div class="card-label">Diesel</div>
-        <div class="card-price" id="price-diesel">...</div>
-        <div class="card-unit">Kč / l</div>
-      </div>
-      <div class="card">
-        <div class="card-label">LPG</div>
-        <div class="card-price" id="price-lpg">...</div>
-        <div class="card-unit">Kč / l</div>
+      <p class="header-sub">Sledování cen pohonných hmot</p>
+      <p class="header-time" id="last-update"></p>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <section class="prices-section">
+      <div class="cards">
+
+        <div class="card card--natural">
+          <div class="card-label">
+            <span class="card-dot"></span>
+            Natural 95
+          </div>
+          <div class="card-price-row">
+            <span class="card-price" id="price-natural95">—</span>
+            <span class="card-currency">Kč / l</span>
+          </div>
+        </div>
+
+        <div class="card card--diesel">
+          <div class="card-label">
+            <span class="card-dot"></span>
+            Diesel
+          </div>
+          <div class="card-price-row">
+            <span class="card-price" id="price-diesel">—</span>
+            <span class="card-currency">Kč / l</span>
+          </div>
+        </div>
+
       </div>
     </section>
 
     <section class="chart-section">
-      <h2>Vývoj cen</h2>
-      <canvas id="priceChart"></canvas>
+      <div class="section-header">
+        <h2 class="section-title">Vývoj cen</h2>
+        <span class="section-badge">365 dní</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="priceChart"></canvas>
+      </div>
     </section>
 
     <section class="history-section">
-      <h2>Historie změn</h2>
-      <table id="history-table">
-        <thead>
-          <tr>
-            <th>Datum</th>
-            <th>Natural 95</th>
-            <th>Diesel</th>
-            <th>LPG</th>
-          </tr>
-        </thead>
-        <tbody id="history-body"></tbody>
-      </table>
+      <div class="section-header">
+        <h2 class="section-title">Historie</h2>
+        <span class="section-badge" id="row-count">načítám…</span>
+      </div>
+      <div class="table-wrap">
+        <table id="history-table">
+          <thead>
+            <tr>
+              <th>Datum a čas</th>
+              <th>Natural 95</th>
+              <th>Diesel</th>
+              <th>Změna</th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
     </section>
 
     <section class="subscribe-section">
-      <h2>Odebírat upozornění</h2>
-      <p>Zadejte e-mail a dostanete zprávu při každé změně cen.</p>
-      <form id="subscribe-form">
-        <input type="email" id="sub-email" placeholder="vas@email.cz" required />
-        <button type="submit">Odebírat</button>
-      </form>
-      <p id="sub-message" class="sub-message"></p>
+      <div class="subscribe-inner">
+        <h2 class="section-title">Upozornění na změny</h2>
+        <p class="subscribe-desc">E-mail při každé změně cen.</p>
+        <form id="subscribe-form">
+          <input type="email" id="sub-email" placeholder="vas@email.cz" required autocomplete="email" />
+          <button type="submit">
+            Odebírat
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+        </form>
+        <p id="sub-message" class="sub-message"></p>
+      </div>
     </section>
-  </div>
+
+  </main>
+
   <script src="app.js"></script>
 </body>
 </html>
