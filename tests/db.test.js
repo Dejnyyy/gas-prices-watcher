@@ -2,6 +2,12 @@
 require('dotenv').config();
 const db = require('../src/db');
 
+// SAFETY: Only run against a test database. Never run against production data.
+// Set DATABASE_URL to point to tankono_test database before running tests.
+if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('test')) {
+  console.warn('WARNING: DATABASE_URL does not contain "test". Running db tests against this database will DELETE ALL data. Set DATABASE_URL to a test database.');
+}
+
 beforeAll(async () => {
   const mysql = require('mysql2/promise');
   const conn = await mysql.createConnection(process.env.DATABASE_URL);

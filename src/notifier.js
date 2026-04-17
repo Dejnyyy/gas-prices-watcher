@@ -69,6 +69,12 @@ async function sendNotification(oldPrices, newPrices) {
   const subscribers = await db.getSubscribers();
   const owner = process.env.NOTIFY_EMAIL;
   const baseUrl = process.env.BASE_URL;
+
+  if (!baseUrl) {
+    console.error('BASE_URL not set — cannot send notifications');
+    return;
+  }
+
   const recipients = [...new Set([owner, ...subscribers])].filter(Boolean);
   const subject = buildSubject(new Date());
 

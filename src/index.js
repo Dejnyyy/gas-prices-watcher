@@ -19,7 +19,7 @@ app.get('/api/latest', async (req, res) => {
 });
 
 app.get('/api/history', async (req, res) => {
-  const days = parseInt(req.query.days, 10) || 30;
+  const days = Math.max(1, Math.min(parseInt(req.query.days, 10) || 30, 365));
   try {
     const rows = await db.getHistory(days);
     res.json(rows);
@@ -52,7 +52,7 @@ app.get('/unsubscribe', async (req, res) => {
     res.send(
       '<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:80px auto;text-align:center">' +
       '<h2>Odhlaseni uspesne</h2>' +
-      '<p>Vas email byl odebran ze seznamu odbератели.</p>' +
+      '<p>Vas email byl uspesne odebran ze seznamu odberat.</p>' +
       '</body></html>'
     );
   } catch (err) {
