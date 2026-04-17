@@ -31,7 +31,8 @@ app.get('/api/history', async (req, res) => {
 
 app.post('/api/subscribe', async (req, res) => {
   const { email } = req.body;
-  if (!email || !email.includes('@')) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email)) {
     return res.status(400).json({ error: 'Invalid email' });
   }
   try {
