@@ -26,7 +26,7 @@ async function loadLatest() {
 
 async function loadHistory() {
   try {
-    const res = await fetch('/api/history?days=90');
+    const res = await fetch('/api/history?days=365');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const rows = await res.json();
 
@@ -35,9 +35,9 @@ async function loadHistory() {
     [...rows].reverse().forEach((r) => {
       const tr = document.createElement('tr');
       tr.appendChild(createCell(new Date(r.checked_at).toLocaleString('cs-CZ')));
-      tr.appendChild(createCell(parseFloat(r.natural95).toFixed(2) + ' Kc'));
-      tr.appendChild(createCell(parseFloat(r.diesel).toFixed(2) + ' Kc'));
-      tr.appendChild(createCell(parseFloat(r.lpg).toFixed(2) + ' Kc'));
+      tr.appendChild(createCell(parseFloat(r.natural95).toFixed(2) + ' Kč'));
+      tr.appendChild(createCell(parseFloat(r.diesel).toFixed(2) + ' Kč'));
+      tr.appendChild(createCell(parseFloat(r.lpg).toFixed(2) + ' Kč'));
       tbody.appendChild(tr);
     });
 
@@ -49,9 +49,9 @@ async function loadHistory() {
       data: {
         labels,
         datasets: [
-          { label: 'Natural 95', data: rows.map((r) => parseFloat(r.natural95)), borderColor: '#e8501a', tension: 0.3, fill: false },
+          { label: 'Natural 95', data: rows.map((r) => parseFloat(r.natural95)), borderColor: '#16a34a', tension: 0.3, fill: false },
           { label: 'Diesel',     data: rows.map((r) => parseFloat(r.diesel)),    borderColor: '#2563eb', tension: 0.3, fill: false },
-          { label: 'LPG',        data: rows.map((r) => parseFloat(r.lpg)),       borderColor: '#16a34a', tension: 0.3, fill: false },
+          { label: 'LPG',        data: rows.map((r) => parseFloat(r.lpg)),       borderColor: '#e8501a', tension: 0.3, fill: false },
         ],
       },
       options: {
@@ -77,7 +77,7 @@ document.getElementById('subscribe-form').addEventListener('submit', async (e) =
     });
     const data = await res.json();
     msg.textContent = res.ok
-      ? 'Prihlaseni uspesne! Budete dostavat upozorneni na zmeny cen.'
+      ? 'Přihlášení úspěšné! Budete dostávat upozornění na změny cen.'
       : 'Chyba: ' + data.error;
   } catch {
     msg.textContent = 'Nastala chyba. Zkuste to znovu.';

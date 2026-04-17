@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tank ONO — Sledovani cen</title>
+  <title>Tank ONO — Sledování cen</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -15,27 +15,27 @@
       <div class="card">
         <div class="card-label">Natural 95</div>
         <div class="card-price" id="price-natural95">...</div>
-        <div class="card-unit">Kc / l</div>
+        <div class="card-unit">Kč / l</div>
       </div>
       <div class="card">
         <div class="card-label">Diesel</div>
         <div class="card-price" id="price-diesel">...</div>
-        <div class="card-unit">Kc / l</div>
+        <div class="card-unit">Kč / l</div>
       </div>
       <div class="card">
         <div class="card-label">LPG</div>
         <div class="card-price" id="price-lpg">...</div>
-        <div class="card-unit">Kc / l</div>
+        <div class="card-unit">Kč / l</div>
       </div>
     </section>
 
     <section class="chart-section">
-      <h2>Vyvoj cen</h2>
+      <h2>Vývoj cen</h2>
       <canvas id="priceChart"></canvas>
     </section>
 
     <section class="history-section">
-      <h2>Historie zmen</h2>
+      <h2>Historie změn</h2>
       <table id="history-table">
         <thead>
           <tr>
@@ -50,11 +50,11 @@
     </section>
 
     <section class="subscribe-section">
-      <h2>Odobirat upozorneni</h2>
-      <p>Zadejte email a dostanete zpravu pri kazde zmene cen.</p>
+      <h2>Odebírat upozornění</h2>
+      <p>Zadejte e-mail a dostanete zprávu při každé změně cen.</p>
       <form id="subscribe-form">
         <input type="email" id="sub-email" placeholder="vas@email.cz" required />
-        <button type="submit">Odobirat</button>
+        <button type="submit">Odebírat</button>
       </form>
       <p id="sub-message" class="sub-message"></p>
     </section>
