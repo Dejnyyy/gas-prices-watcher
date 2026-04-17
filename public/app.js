@@ -11,48 +11,58 @@ function createCell(text) {
 }
 
 async function loadLatest() {
-  const res = await fetch('/api/latest');
-  const data = await res.json();
-  if (!data.natural95) return;
-  setText('price-natural95', parseFloat(data.natural95).toFixed(2));
-  setText('price-diesel',    parseFloat(data.diesel).toFixed(2));
-  setText('price-lpg',       parseFloat(data.lpg).toFixed(2));
+  try {
+    const res = await fetch('/api/latest');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!data.natural95) return;
+    setText('price-natural95', parseFloat(data.natural95).toFixed(2));
+    setText('price-diesel',    parseFloat(data.diesel).toFixed(2));
+    setText('price-lpg',       parseFloat(data.lpg).toFixed(2));
+  } catch (err) {
+    console.error('loadLatest failed:', err);
+  }
 }
 
 async function loadHistory() {
-  const res = await fetch('/api/history?days=90');
-  const rows = await res.json();
+  try {
+    const res = await fetch('/api/history?days=90');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const rows = await res.json();
 
-  const tbody = document.getElementById('history-body');
-  tbody.replaceChildren();
-  [...rows].reverse().forEach((r) => {
-    const tr = document.createElement('tr');
-    tr.appendChild(createCell(new Date(r.checked_at).toLocaleString('cs-CZ')));
-    tr.appendChild(createCell(parseFloat(r.natural95).toFixed(2) + ' Kc'));
-    tr.appendChild(createCell(parseFloat(r.diesel).toFixed(2) + ' Kc'));
-    tr.appendChild(createCell(parseFloat(r.lpg).toFixed(2) + ' Kc'));
-    tbody.appendChild(tr);
-  });
+    const tbody = document.getElementById('history-body');
+    tbody.replaceChildren();
+    [...rows].reverse().forEach((r) => {
+      const tr = document.createElement('tr');
+      tr.appendChild(createCell(new Date(r.checked_at).toLocaleString('cs-CZ')));
+      tr.appendChild(createCell(parseFloat(r.natural95).toFixed(2) + ' Kc'));
+      tr.appendChild(createCell(parseFloat(r.diesel).toFixed(2) + ' Kc'));
+      tr.appendChild(createCell(parseFloat(r.lpg).toFixed(2) + ' Kc'));
+      tbody.appendChild(tr);
+    });
 
-  const labels = rows.map((r) => new Date(r.checked_at).toLocaleDateString('cs-CZ'));
-  const ctx = document.getElementById('priceChart').getContext('2d');
-  if (chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Natural 95', data: rows.map((r) => parseFloat(r.natural95)), borderColor: '#e8501a', tension: 0.3, fill: false },
-        { label: 'Diesel',     data: rows.map((r) => parseFloat(r.diesel)),    borderColor: '#2563eb', tension: 0.3, fill: false },
-        { label: 'LPG',        data: rows.map((r) => parseFloat(r.lpg)),       borderColor: '#16a34a', tension: 0.3, fill: false },
-      ],
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { position: 'top' } },
-      scales: { y: { beginAtZero: false } },
-    },
-  });
+    const labels = rows.map((r) => new Date(r.checked_at).toLocaleDateString('cs-CZ'));
+    const ctx = document.getElementById('priceChart').getContext('2d');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Natural 95', data: rows.map((r) => parseFloat(r.natural95)), borderColor: '#e8501a', tension: 0.3, fill: false },
+          { label: 'Diesel',     data: rows.map((r) => parseFloat(r.diesel)),    borderColor: '#2563eb', tension: 0.3, fill: false },
+          { label: 'LPG',        data: rows.map((r) => parseFloat(r.lpg)),       borderColor: '#16a34a', tension: 0.3, fill: false },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: false } },
+      },
+    });
+  } catch (err) {
+    console.error('loadHistory failed:', err);
+  }
 }
 
 document.getElementById('subscribe-form').addEventListener('submit', async (e) => {
