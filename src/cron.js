@@ -37,9 +37,13 @@ async function _runCheck() {
   try {
     const [latest, prev] = await db.getLatest2();
 
+    const latN = latest ? parseFloat(latest.natural95) : null;
+    const latD = latest ? parseFloat(latest.diesel) : null;
+    console.log('DB latest:', latN, latD, '| Scraped:', prices.natural95, prices.diesel);
+
     const priceChanged = !latest ||
-      parseFloat(latest.natural95) !== prices.natural95 ||
-      parseFloat(latest.diesel)    !== prices.diesel;
+      latN !== prices.natural95 ||
+      latD !== prices.diesel;
 
     if (priceChanged) {
       const oldPrices = latest
@@ -51,8 +55,9 @@ async function _runCheck() {
     } else {
       // Prices unchanged — save latest tick, delete previous if it was also unchanged
       const prevSame = prev &&
-        parseFloat(prev.natural95) === parseFloat(latest.natural95) &&
-        parseFloat(prev.diesel)    === parseFloat(latest.diesel);
+        parseFloat(prev.natural95) === latN &&
+        parseFloat(prev.diesel)    === latD;
+      console.log('prevSame:', prevSame, '| prev:', prev ? [parseFloat(prev.natural95), parseFloat(prev.diesel)] : null);
 
       if (prevSame) {
         await db.deleteRecord(latest.id);
