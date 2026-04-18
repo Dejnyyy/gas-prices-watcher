@@ -17,6 +17,17 @@ async function getLatest() {
   return rows[0] || null;
 }
 
+async function getLatest2() {
+  const [rows] = await pool.execute(
+    'SELECT * FROM price_checks ORDER BY checked_at DESC LIMIT 2'
+  );
+  return rows; // [newest, second-newest]
+}
+
+async function deleteRecord(id) {
+  await pool.execute('DELETE FROM price_checks WHERE id = ?', [id]);
+}
+
 async function getHistory(days = 30) {
   const [rows] = await pool.execute(
     'SELECT * FROM price_checks WHERE checked_at >= DATE_SUB(NOW(), INTERVAL ? DAY) ORDER BY checked_at ASC LIMIT 300',
@@ -41,4 +52,4 @@ async function getSubscribers() {
   return rows.map((r) => r.email);
 }
 
-module.exports = { saveCheck, getLatest, getHistory, addSubscriber, removeSubscriber, getSubscribers };
+module.exports = { saveCheck, getLatest, getLatest2, deleteRecord, getHistory, addSubscriber, removeSubscriber, getSubscribers };
