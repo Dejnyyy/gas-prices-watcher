@@ -226,9 +226,8 @@ async function sendNotification(oldPrices, newPrices) {
 
   for (const email of recipients) {
     try {
-      const hostname = new URL(baseUrl).hostname;
       await resend.emails.send({
-        from: `Dejnyho Hlídač <noreply@${hostname}>`,
+        from: 'Dejnyho Hlídač <noreply@dejny.eu>',
         to:   email,
         subject,
         html: buildEmailHtml(oldPrices, newPrices, baseUrl, email),
