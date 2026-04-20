@@ -1,58 +1,76 @@
-const { Resend } = require('resend');
-const db = require('./db');
-require('dotenv').config();
+const { Resend } = require("resend");
+const db = require("./db");
+require("dotenv").config();
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 function formatDate(date) {
-  return date.toLocaleString('cs-CZ', {
-    timeZone: 'Europe/Prague',
-    day: 'numeric', month: 'long', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+  return date.toLocaleString("cs-CZ", {
+    timeZone: "Europe/Prague",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
 function buildSubject(oldPrices, newPrices) {
-  const dn = Math.round((newPrices.natural95 - oldPrices.natural95) * 100) / 100;
-  const dd = Math.round((newPrices.diesel    - oldPrices.diesel)    * 100) / 100;
-  const fmt = (v) => (v > 0 ? '↑' : '↓') + Math.abs(v).toFixed(2);
+  const dn =
+    Math.round((newPrices.natural95 - oldPrices.natural95) * 100) / 100;
+  const dd = Math.round((newPrices.diesel - oldPrices.diesel) * 100) / 100;
+  const fmt = (v) => (v > 0 ? "↑" : "↓") + Math.abs(v).toFixed(2);
   const parts = [];
-  if (dn !== 0) parts.push('Natural ' + fmt(dn));
-  if (dd !== 0) parts.push('Diesel ' + fmt(dd));
-  const summary = parts.length ? parts.join(', ') : 'změna cen';
-  return 'Dejnyho Hlídač — ' + summary + ' Kč';
+  if (dn !== 0) parts.push("Natural " + fmt(dn));
+  if (dd !== 0) parts.push("Diesel " + fmt(dd));
+  const summary = parts.length ? parts.join(", ") : "změna cen";
+  return "Dejnyho Hlídač — " + summary + " Kč";
 }
 
 function diffColor(v) {
-  if (v > 0) return '#b91c1c';
-  if (v < 0) return '#15803d';
-  return '#6b7280';
+  if (v > 0) return "#b91c1c";
+  if (v < 0) return "#15803d";
+  return "#6b7280";
 }
 
 function diffArrow(v) {
-  if (v > 0) return '↑';
-  if (v < 0) return '↓';
-  return '—';
+  if (v > 0) return "↑";
+  if (v < 0) return "↓";
+  return "—";
 }
 
 function buildEmailHtml(oldPrices, newPrices, baseUrl, recipientEmail) {
-  const unsubLink = baseUrl + '/unsubscribe?email=' + encodeURIComponent(recipientEmail);
-  const siteLink  = baseUrl;
-  const now       = formatDate(new Date());
+  const unsubLink =
+    baseUrl + "/unsubscribe?email=" + encodeURIComponent(recipientEmail);
+  const siteLink = baseUrl;
+  const now = formatDate(new Date());
 
   const fuels = [
-    { label: 'Natural 95', color: '#166534', old: oldPrices.natural95, new: newPrices.natural95 },
-    { label: 'Diesel',     color: '#1e3a8a', old: oldPrices.diesel,    new: newPrices.diesel },
+    {
+      label: "Natural 95",
+      color: "#166534",
+      old: oldPrices.natural95,
+      new: newPrices.natural95,
+    },
+    {
+      label: "Diesel",
+      color: "#1e3a8a",
+      old: oldPrices.diesel,
+      new: newPrices.diesel,
+    },
   ];
 
-  let fuelBlocks = '';
+  let fuelBlocks = "";
   for (const f of fuels) {
-    const diff    = Math.round((f.new - f.old) * 100) / 100;
-    const dCol    = diff > 0 ? '#991b1b' : diff < 0 ? '#14532d' : '#6b7280';
-    const dBg     = diff > 0 ? '#fef2f2' : diff < 0 ? '#f0fdf4' : '#f5f5f4';
-    const dBorder = diff > 0 ? '#fecaca' : diff < 0 ? '#bbf7d0' : '#e7e5e4';
-    const dArrow  = diff > 0 ? '↑' : diff < 0 ? '↓' : '—';
-    const dStr    = diff === 0 ? 'beze změny' : (diff > 0 ? '+' : '') + diff.toFixed(2) + ' Kč';
+    const diff = Math.round((f.new - f.old) * 100) / 100;
+    const dCol = diff > 0 ? "#991b1b" : diff < 0 ? "#14532d" : "#6b7280";
+    const dBg = diff > 0 ? "#fef2f2" : diff < 0 ? "#f0fdf4" : "#f5f5f4";
+    const dBorder = diff > 0 ? "#fecaca" : diff < 0 ? "#bbf7d0" : "#e7e5e4";
+    const dArrow = diff > 0 ? "↑" : diff < 0 ? "↓" : "—";
+    const dStr =
+      diff === 0
+        ? "beze změny"
+        : (diff > 0 ? "+" : "") + diff.toFixed(2) + " Kč";
 
     fuelBlocks += `
       <tr>
@@ -213,27 +231,27 @@ function buildEmailHtml(oldPrices, newPrices, baseUrl, recipientEmail) {
 
 async function sendNotification(oldPrices, newPrices) {
   const subscribers = await db.getSubscribers();
-  const owner   = process.env.NOTIFY_EMAIL;
+  const owner = process.env.NOTIFY_EMAIL;
   const baseUrl = process.env.BASE_URL;
 
   if (!baseUrl) {
-    console.error('BASE_URL not set — cannot send notifications');
+    console.error("BASE_URL not set — cannot send notifications");
     return;
   }
 
   const recipients = [...new Set([owner, ...subscribers])].filter(Boolean);
-  const subject    = buildSubject(oldPrices, newPrices);
+  const subject = buildSubject(oldPrices, newPrices);
 
   for (const email of recipients) {
     try {
       await resend.emails.send({
-        from: 'Dejnyho Hlídač <noreply@dejny.eu>',
-        to:   email,
+        from: "Dejnyho Hlídač <hlidac@dejny.eu>",
+        to: email,
         subject,
         html: buildEmailHtml(oldPrices, newPrices, baseUrl, email),
       });
     } catch (err) {
-      console.error('Failed to send email to ' + email + ':', err.message);
+      console.error("Failed to send email to " + email + ":", err.message);
     }
   }
 }
