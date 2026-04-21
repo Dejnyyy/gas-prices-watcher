@@ -157,10 +157,11 @@ function buildEmailHtml(oldPrices, newPrices, baseUrl, recipientEmail) {
                     <span style="font-size:20px;font-weight:700;color:#111110;letter-spacing:-.3px">Dejnyho Hlídač<span style="color:#b45309">.</span></span>
                   </td>
                   <td align="right" style="vertical-align:middle">
-                    <span style="display:inline-block;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:3px 11px;font-family:'SF Mono','Consolas','Monaco',monospace;font-size:9px;letter-spacing:2px;color:#b45309;text-transform:uppercase">změna cen</span>
+                    <span style="display:inline-block;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:3px 11px;font-family:'SF Mono','Consolas','Monaco',monospace;font-size:9px;letter-spacing:2px;color:#b45309;text-transform:uppercase">Tank ONO</span>
                   </td>
                 </tr>
               </table>
+              <div style="font-size:12px;color:#6b7280;margin-top:4px">Hlídač cen na benzínkách Tank ONO</div>
             </td>
           </tr>
 

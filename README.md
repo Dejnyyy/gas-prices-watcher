@@ -1,4 +1,4 @@
-# Tank ONO Watcher
+# Hlídač cen Tank ONO
 
 Scrapes Tank ONO fuel prices every 5 minutes. Emails all subscribers when prices change. Web dashboard on subdomain.
 
