@@ -87,12 +87,12 @@ function buildEmailHtml(oldPrices, newPrices, baseUrl, recipientEmail) {
               <td style="padding:10px 20px 0 20px">
                 <table width="100%" cellpadding="0" cellspacing="0" border="0">
                   <tr>
-                    <td style="vertical-align:bottom">
+                    ${diff !== 0 ? `<td style="vertical-align:bottom">
                       <div style="font-size:11px;color:#6b7280;margin-bottom:4px">bylo</div>
                       <div style="font-family:'SF Mono','Consolas','Monaco',monospace;font-size:16px;color:#9ca3af;text-decoration:line-through">${f.old.toFixed(2)} Kč</div>
-                    </td>
+                    </td>` : ''}
                     <td style="vertical-align:bottom;text-align:right">
-                      <div style="font-size:11px;color:#6b7280;margin-bottom:4px;text-align:right">nová cena</div>
+                      <div style="font-size:11px;color:#6b7280;margin-bottom:4px;text-align:right">${diff !== 0 ? 'nová cena' : 'aktuální cena'}</div>
                       <div style="line-height:1">
                         <span style="font-family:'SF Mono','Consolas','Monaco',monospace;font-size:34px;font-weight:700;color:${f.color}">${f.new.toFixed(2)}</span>
                         <span style="font-family:'SF Mono','Consolas','Monaco',monospace;font-size:16px;color:#374151;margin-left:4px">Kč</span>
