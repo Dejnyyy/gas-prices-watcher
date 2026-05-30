@@ -71,6 +71,13 @@ async function loadHistory() {
     const countEl = document.getElementById('row-count');
     if (countEl) countEl.textContent = rows.length + ' záznamů';
 
+    // Chart days badge
+    const daysBadge = document.getElementById('chart-days-badge');
+    if (daysBadge && rows.length) {
+      const uniqueDays = new Set(rows.map((r) => new Date(r.checked_at).toISOString().slice(0, 10))).size;
+      daysBadge.textContent = uniqueDays + ' dní';
+    }
+
     // ── Build table (newest first) ──
     const tbody = document.getElementById('history-body');
     tbody.replaceChildren();
