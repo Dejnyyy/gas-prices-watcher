@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const { fetchPrices } = require('./scraper');
+const { scrapeAll } = require('./scrapers/index');
 const db = require('./db');
 const { sendNotification } = require('./notifier');
 
@@ -19,56 +19,60 @@ async function runCheck() {
 }
 
 async function _runCheck() {
-  console.log('[' + new Date().toLocaleString('cs-CZ', { timeZone: 'Europe/Prague' }) + '] Running price check...');
+  const now = new Date().toLocaleString('cs-CZ', { timeZone: 'Europe/Prague' });
+  console.log('[' + now + '] Running price check...');
 
-  let prices;
+  let scraped;
   try {
-    prices = await fetchPrices();
+    scraped = await scrapeAll();
   } catch (err) {
-    console.error('Scraper error:', err.message);
+    console.error('scrapeAll error:', err.message);
+    return;
+  }
+  if (!scraped.length) {
+    console.error('No stations scraped — skipping.');
     return;
   }
 
-  if (!prices) {
-    console.error('Scraper returned null — skipping check.');
-    return;
-  }
+  const changes = [];
 
-  try {
-    const [latest, prev] = await db.getLatest2();
+  for (const s of scraped) {
+    try {
+      const stationId = await db.upsertStation(s);
+      const [latest, prev] = await db.getLatest2ForStation(stationId);
 
-    const latN = latest ? parseFloat(latest.natural95) : null;
-    const latD = latest ? parseFloat(latest.diesel) : null;
-    console.log('DB latest:', latN, latD, '| Scraped:', prices.natural95, prices.diesel);
+      const latN = latest ? parseFloat(latest.natural95) : null;
+      const latD = latest ? parseFloat(latest.diesel) : null;
+      const priceChanged = !latest || latN !== s.natural95 || latD !== s.diesel;
 
-    const priceChanged = !latest ||
-      latN !== prices.natural95 ||
-      latD !== prices.diesel;
-
-    if (priceChanged) {
-      const oldPrices = latest
-        ? { natural95: parseFloat(latest.natural95), diesel: parseFloat(latest.diesel) }
-        : null;
-      if (oldPrices) await sendNotification(oldPrices, prices);
-      await db.saveCheck(prices, true);
-      console.log('Price changed. Saved.', prices);
-    } else {
-      // Prices unchanged — save latest tick, delete previous if it was also unchanged
-      const prevSame = prev &&
-        parseFloat(prev.natural95) === latN &&
-        parseFloat(prev.diesel)    === latD;
-      console.log('prevSame:', prevSame, '| prev:', prev ? [parseFloat(prev.natural95), parseFloat(prev.diesel)] : null);
-
-      if (prevSame) {
-        await db.deleteRecord(latest.id);
-        console.log('No change. Deleted duplicate id=' + latest.id + ', saving new tick.');
+      if (priceChanged) {
+        if (latest) {
+          changes.push({
+            slug: s.slug, name: s.name,
+            old: { natural95: latN, diesel: latD },
+            new: { natural95: s.natural95, diesel: s.diesel },
+          });
+        }
+        await db.saveCheck(stationId, { natural95: s.natural95, diesel: s.diesel }, true);
       } else {
-        console.log('No change. Prev differs (boundary), keeping latest, saving new tick.');
+        const prevSame = prev && parseFloat(prev.natural95) === latN && parseFloat(prev.diesel) === latD;
+        if (prevSame) await db.deleteRecord(latest.id);
+        await db.saveCheck(stationId, { natural95: s.natural95, diesel: s.diesel }, false);
       }
-      await db.saveCheck(prices, false);
+    } catch (err) {
+      console.error('Station ' + s.slug + ' error:', err.message);
     }
-  } catch (err) {
-    console.error('DB/notifier error:', err.message);
+  }
+
+  if (changes.length) {
+    try {
+      await sendNotification(changes);
+      console.log('Notified: ' + changes.map((c) => c.name).join(', '));
+    } catch (err) {
+      console.error('Notification error:', err.message);
+    }
+  } else {
+    console.log('No changes this cycle.');
   }
 }
 
