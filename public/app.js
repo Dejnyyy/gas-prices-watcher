@@ -134,7 +134,11 @@ function observeTableRows() {
     { threshold: 0.04 }
   );
 
-  observer.observe(document.querySelector('.table-wrap'));
+  // Bind to the history table's own wrapper — there is another .table-wrap
+  // (the chart card) earlier in the DOM, and querySelector would grab that one,
+  // leaving the history rows stuck at opacity:0.
+  const wrap = tbody.closest('.table-wrap');
+  if (wrap) observer.observe(wrap);
 }
 
 async function loadHistory() {
