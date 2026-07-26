@@ -40,6 +40,18 @@ describe('computeLastMove', () => {
     expect(moves).toHaveLength(1);
     expect(moves[0].fuel).toBe('diesel');
   });
+
+  test('treats numerically-equal string prices as unchanged (DB returns strings)', () => {
+    const rows = [
+      { natural95: '39.90', diesel: '38.90', checked_at: '2026-07-20T10:00:00' },
+      { natural95: '39.50', diesel: '38.90', checked_at: '2026-07-20T11:00:00' }, // real N95 drop
+      { natural95: '39.5',  diesel: '38.9',  checked_at: '2026-07-20T12:00:00' }, // same values, different string form
+    ];
+    const moves = computeLastMove(rows);
+    // latest row is numerically identical to the prior -> the most recent REAL change is the N95 drop
+    expect(moves).toHaveLength(1);
+    expect(moves[0]).toMatchObject({ fuel: 'natural95', delta: -0.4, direction: 'down' });
+  });
 });
 
 describe('rankStations', () => {
@@ -57,5 +69,15 @@ describe('rankStations', () => {
 
   test('caps to the limit', () => {
     expect(rankStations(stations, 2)).toHaveLength(2);
+  });
+
+  test('sorts string-valued prices numerically, not lexicographically', () => {
+    const stringStations = [
+      { slug: 'x', name: 'X', is_primary: 0, natural95: '9.50', diesel: '9.00', lastMove: [] },
+      { slug: 'y', name: 'Y', is_primary: 0, natural95: '40.50', diesel: '39.00', lastMove: [] },
+    ];
+    // lexicographically '40.50' < '9.50'; numerically 9.5 < 40.5 -> 'x' must rank first
+    const ranked = rankStations(stringStations, 10);
+    expect(ranked.map((s) => s.slug)).toEqual(['x', 'y']);
   });
 });
