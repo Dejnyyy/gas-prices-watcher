@@ -2,6 +2,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 
 const CENIK_URL = 'https://www.tank-ono.cz/cz/index.php?page=cenik';
+const KEY = 'tank-ono';
 
 /**
  * Parse a CZK price string like "38,90" or "---" into a float or null.
@@ -86,4 +87,4 @@ async function fetchPrices() {
   }
 }
 
-module.exports = { fetchPrices, parsePrices };
+module.exports = { fetchPrices, parsePrices, KEY };
