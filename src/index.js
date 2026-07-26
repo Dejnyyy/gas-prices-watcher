@@ -11,9 +11,14 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Pure: assemble ranked leaderboard payload from per-station latest+lastMove objects.
 function buildLeaderboard(stations) {
-  const ranked = rankStations(stations, 10);
-  const primary = ranked.find((s) => s.is_primary) || stations.find((s) => s.is_primary) || null;
-  return { primary, stations: ranked };
+  // Rank every station so ranks are correct even outside the top 10.
+  const fullRanked = rankStations(stations, stations.length);
+  const top = fullRanked.slice(0, 10);
+  const primary = fullRanked.find((s) => s.is_primary) || null;
+  // Spec: the primary (Tank ONO) is always shown, even if it isn't among the 10 cheapest.
+  const display =
+    primary && !top.some((s) => s.slug === primary.slug) ? [...top, primary] : top;
+  return { primary, stations: display };
 }
 
 app.get('/api/stations/latest', async (req, res) => {
