@@ -99,8 +99,10 @@ async function loadLatest() {
       tbody.appendChild(tr);
     });
 
-    if (primary && primary.lastMove && primary.lastMove.length) {
-      document.getElementById('last-update').textContent = 'Aktualizováno: ' + relTime(primary.lastMove[0].at);
+    if (primary && primary.checked_at) {
+      const d = new Date(primary.checked_at);
+      document.getElementById('last-update').textContent =
+        'Aktualizováno: ' + d.toLocaleString('cs-CZ', { timeZone: 'Europe/Prague' });
     }
   } catch (err) {
     console.error('loadLatest:', err);

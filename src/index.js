@@ -33,6 +33,7 @@ app.get('/api/stations/latest', async (req, res) => {
         slug: st.slug, name: st.name, is_primary: st.is_primary,
         natural95: parseFloat(latest.natural95), diesel: parseFloat(latest.diesel),
         lastMove: computeLastMove(recent),
+        checked_at: latest.checked_at,
       });
     }
     res.json(buildLeaderboard(enriched));
