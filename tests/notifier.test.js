@@ -1,26 +1,26 @@
-const { buildEmailHtml, buildSubject } = require('../src/notifier');
+const { buildDigestHtml, buildSubject } = require('../src/notifier');
 
-test('buildSubject includes date', () => {
-  const subject = buildSubject(new Date('2026-04-17T14:32:00'));
-  expect(subject).toContain('17.4.2026');
-  expect(subject).toContain('14:32');
+const changes = [
+  { slug: 'tank-ono', name: 'Tank ONO', old: { natural95: 39.9, diesel: 38.9 }, new: { natural95: 39.5, diesel: 38.9 } },
+  { slug: 'mbenzin-18065', name: 'VS Petrol', old: { natural95: 40.2, diesel: 39.9 }, new: { natural95: 40.5, diesel: 39.9 } },
+];
+
+test('buildSubject summarizes each changed station with direction', () => {
+  const subject = buildSubject(changes);
+  expect(subject).toContain('Tank ONO');
+  expect(subject).toContain('VS Petrol');
+  expect(subject).toMatch(/↓\s?0,40/);
+  expect(subject).toMatch(/↑\s?0,30/);
 });
 
-test('buildEmailHtml shows old and new prices with diff', () => {
-  const oldPrices = { natural95: 35.90, diesel: 34.50, lpg: 18.20 };
-  const newPrices = { natural95: 36.10, diesel: 34.50, lpg: 17.90 };
-  const html = buildEmailHtml(oldPrices, newPrices, 'https://tankono.bagros.eu', 'test@example.com');
-
-  expect(html).toContain('36.10');
-  expect(html).toContain('35.90');
-  expect(html).toContain('+0.20');
-  expect(html).toContain('-0.30');
-  expect(html).toContain('unsubscribe');
-  expect(html).toContain('test@example.com');
+test('buildSubject falls back when empty', () => {
+  expect(buildSubject([])).toContain('změna cen');
 });
 
-test('buildEmailHtml shows dash for unchanged price', () => {
-  const prices = { natural95: 34.50, diesel: 34.50, lpg: 18.20 };
-  const html = buildEmailHtml(prices, prices, 'https://tankono.bagros.eu', 'test@example.com');
-  expect(html).toContain('—');
+test('buildDigestHtml renders a block per station and the unsubscribe link', () => {
+  const html = buildDigestHtml(changes, 'https://beno.dejny.eu', 'a@b.cz');
+  expect(html).toContain('Tank ONO');
+  expect(html).toContain('VS Petrol');
+  expect(html).toContain('39,50'); // new Tank ONO N95
+  expect(html).toContain('/unsubscribe?email=a%40b.cz');
 });
