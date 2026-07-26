@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const db = require('./db');
+const { computeLastMove, rankStations } = require('./leaderboard');
 const { startCron } = require('./cron');
 require('dotenv').config();
 
@@ -8,10 +9,28 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-app.get('/api/latest', async (req, res) => {
+// Pure: assemble ranked leaderboard payload from per-station latest+lastMove objects.
+function buildLeaderboard(stations) {
+  const ranked = rankStations(stations, 10);
+  const primary = ranked.find((s) => s.is_primary) || stations.find((s) => s.is_primary) || null;
+  return { primary, stations: ranked };
+}
+
+app.get('/api/stations/latest', async (req, res) => {
   try {
-    const latest = await db.getLatest();
-    res.json(latest || {});
+    const stationRows = await db.getStations();
+    const enriched = [];
+    for (const st of stationRows) {
+      const recent = await db.getRecentForStation(st.id, 60);
+      if (!recent.length) continue;
+      const latest = recent[recent.length - 1];
+      enriched.push({
+        slug: st.slug, name: st.name, is_primary: st.is_primary,
+        natural95: parseFloat(latest.natural95), diesel: parseFloat(latest.diesel),
+        lastMove: computeLastMove(recent),
+      });
+    }
+    res.json(buildLeaderboard(enriched));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DB error' });
@@ -20,8 +39,11 @@ app.get('/api/latest', async (req, res) => {
 
 app.get('/api/history', async (req, res) => {
   const days = Math.max(1, Math.min(parseInt(req.query.days, 10) || 30, 365));
+  const slug = req.query.station || 'tank-ono';
   try {
-    const rows = await db.getHistory(days);
+    const station = await db.getStationBySlug(slug);
+    if (!station) return res.json([]);
+    const rows = await db.getHistoryForStation(station.id, days);
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -32,9 +54,7 @@ app.get('/api/history', async (req, res) => {
 app.post('/api/subscribe', async (req, res) => {
   const { email } = req.body;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!email || !emailRegex.test(email)) {
-    return res.status(400).json({ error: 'Invalid email' });
-  }
+  if (!email || !emailRegex.test(email)) return res.status(400).json({ error: 'Invalid email' });
   try {
     await db.addSubscriber(email);
     res.json({ ok: true });
@@ -51,9 +71,7 @@ app.get('/unsubscribe', async (req, res) => {
     await db.removeSubscriber(decodeURIComponent(email));
     res.send(
       '<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:400px;margin:80px auto;text-align:center">' +
-      '<h2>Odhlaseni uspesne</h2>' +
-      '<p>Vas email byl uspesne odebran ze seznamu odberat.</p>' +
-      '</body></html>'
+      '<h2>Odhlaseni uspesne</h2><p>Vas email byl uspesne odebran ze seznamu odberat.</p></body></html>'
     );
   } catch (err) {
     console.error(err);
@@ -61,8 +79,12 @@ app.get('/unsubscribe', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log('Server running on port ' + PORT);
-  startCron();
-});
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log('Server running on port ' + PORT);
+    startCron();
+  });
+}
+
+module.exports = { app, buildLeaderboard };

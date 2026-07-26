@@ -43,6 +43,11 @@ async function getLatest2ForStation(stationId) {
   return rows; // [newest, second-newest]
 }
 
+async function getStationBySlug(slug) {
+  const [rows] = await pool.execute('SELECT * FROM stations WHERE slug = ?', [slug]);
+  return rows[0] || null;
+}
+
 async function getRecentForStation(stationId, limit = 60) {
   const lim = Math.max(1, Math.min(parseInt(limit, 10) || 60, 500));
   const [rows] = await pool.query(
@@ -80,7 +85,7 @@ async function getSubscribers() {
 }
 
 module.exports = {
-  upsertStation, getStations,
+  upsertStation, getStations, getStationBySlug,
   saveCheck, getLatestForStation, getLatest2ForStation,
   getRecentForStation, getHistoryForStation, deleteRecord,
   addSubscriber, removeSubscriber, getSubscribers,
