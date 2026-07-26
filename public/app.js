@@ -13,20 +13,94 @@ function countUp(el, target, duration = 1500) {
   requestAnimationFrame(tick);
 }
 
+function fuelLabel(fuel) { return fuel === 'natural95' ? 'N95' : 'Diesel'; }
+
+function relTime(iso) {
+  const then = new Date(iso).getTime();
+  const mins = Math.round((Date.now() - then) / 60000);
+  if (mins < 60) return 'před ' + mins + ' min';
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return 'před ' + hrs + ' h';
+  const days = Math.round(hrs / 24);
+  return days === 1 ? 'včera' : 'před ' + days + ' dny';
+}
+
+function moveCell(lastMove) {
+  const td = document.createElement('td');
+  td.className = 'num';
+  if (!lastMove || !lastMove.length) {
+    const flat = document.createElement('span');
+    flat.className = 'lb-move flat';
+    flat.textContent = 'beze změny';
+    td.appendChild(flat);
+    return td;
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'lb-moves';
+  lastMove.forEach((m) => {
+    const chip = document.createElement('span');
+    chip.className = 'lb-move ' + (m.direction === 'up' ? 'up' : 'down');
+    const fuel = document.createElement('span');
+    fuel.className = 'fuel';
+    fuel.textContent = fuelLabel(m.fuel);
+    chip.appendChild(fuel);
+    chip.appendChild(document.createTextNode(
+      ' ' + (m.direction === 'up' ? '▲' : '▼') + ' ' + Math.abs(m.delta).toFixed(2).replace('.', ',')
+    ));
+    wrap.appendChild(chip);
+  });
+  const ago = document.createElement('div');
+  ago.style.cssText = "font-size:.62rem;color:var(--muted);margin-top:2px";
+  ago.textContent = relTime(lastMove[0].at);
+  td.appendChild(wrap);
+  td.appendChild(ago);
+  return td;
+}
+
 async function loadLatest() {
   try {
-    const res = await fetch('/api/latest');
+    const res = await fetch('/api/stations/latest');
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if (!data.natural95) return;
+    const { primary, stations } = await res.json();
 
-    countUp(document.getElementById('price-natural95'), parseFloat(data.natural95));
-    countUp(document.getElementById('price-diesel'),    parseFloat(data.diesel), 1700);
+    if (primary) {
+      countUp(document.getElementById('price-natural95'), primary.natural95);
+      countUp(document.getElementById('price-diesel'), primary.diesel, 1700);
+    }
 
-    if (data.checked_at) {
-      const d = new Date(data.checked_at);
-      document.getElementById('last-update').textContent =
-        'Aktualizováno: ' + d.toLocaleString('cs-CZ', { timeZone: 'Europe/Prague' });
+    const tbody = document.getElementById('leaderboard-body');
+    tbody.replaceChildren();
+    (stations || []).forEach((s) => {
+      const tr = document.createElement('tr');
+      if (s.is_primary) tr.className = 'is-primary';
+
+      const nameTd = document.createElement('td');
+      const rank = document.createElement('span');
+      rank.className = 'lb-rank';
+      rank.textContent = s.rank;
+      const nm = document.createElement('span');
+      nm.className = 'lb-station';
+      nm.textContent = s.name;
+      nameTd.appendChild(rank);
+      nameTd.appendChild(nm);
+      tr.appendChild(nameTd);
+
+      const n = document.createElement('td');
+      n.className = 'num lb-price';
+      n.textContent = s.natural95.toFixed(2);
+      tr.appendChild(n);
+
+      const d = document.createElement('td');
+      d.className = 'num lb-price';
+      d.textContent = s.diesel.toFixed(2);
+      tr.appendChild(d);
+
+      tr.appendChild(moveCell(s.lastMove));
+      tbody.appendChild(tr);
+    });
+
+    if (primary && primary.lastMove && primary.lastMove.length) {
+      document.getElementById('last-update').textContent = 'Aktualizováno: ' + relTime(primary.lastMove[0].at);
     }
   } catch (err) {
     console.error('loadLatest:', err);
