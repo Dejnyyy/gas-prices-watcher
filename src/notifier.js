@@ -4,6 +4,15 @@ require('dotenv').config();
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function formatDate(date) {
   return date.toLocaleString('cs-CZ', {
     timeZone: 'Europe/Prague',
@@ -58,7 +67,7 @@ function stationBlock(change) {
     <tr><td style="padding-bottom:12px">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border:1px solid #d1d5db;border-radius:12px;border-left:4px solid #b45309" bgcolor="#ffffff">
         <tr><td style="padding:14px 18px 4px 18px">
-          <span style="font-size:15px;font-weight:700;color:#111110">${change.name}</span>
+          <span style="font-size:15px;font-weight:700;color:#111110">${escapeHtml(change.name)}</span>
         </td></tr>
         <tr><td style="padding:0 18px 10px 18px">
           <table width="100%" cellpadding="0" cellspacing="0" border="0">${rows}</table>
