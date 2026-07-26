@@ -10,6 +10,15 @@ async function columnExists(conn, table, column) {
   return rows[0].c > 0;
 }
 
+async function constraintExists(conn, table, name) {
+  const [rows] = await conn.execute(
+    `SELECT COUNT(*) AS c FROM information_schema.table_constraints
+     WHERE constraint_schema = DATABASE() AND table_name = ? AND constraint_name = ?`,
+    [table, name]
+  );
+  return rows[0].c > 0;
+}
+
 async function main() {
   const conn = await mysql.createConnection(process.env.DATABASE_URL);
 
@@ -48,8 +57,12 @@ async function main() {
   await conn.execute(`ALTER TABLE price_checks MODIFY station_id INT UNSIGNED NOT NULL`);
   try { await conn.execute(`ALTER TABLE price_checks ADD INDEX idx_station_time (station_id, checked_at)`); }
   catch (e) { if (!/Duplicate key name/.test(e.message)) throw e; }
-  try { await conn.execute(`ALTER TABLE price_checks ADD FOREIGN KEY (station_id) REFERENCES stations(id)`); }
-  catch (e) { if (!/Duplicate|foreign key constraint/i.test(e.message)) throw e; }
+  if (!(await constraintExists(conn, 'price_checks', 'fk_price_checks_station'))) {
+    await conn.execute(
+      `ALTER TABLE price_checks
+       ADD CONSTRAINT fk_price_checks_station FOREIGN KEY (station_id) REFERENCES stations(id)`
+    );
+  }
 
   console.log('Migration complete. Tank ONO station id =', tankOnoId);
   await conn.end();

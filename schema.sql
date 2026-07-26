@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS price_checks (
   diesel     DECIMAL(5,2) NOT NULL,
   changed    TINYINT(1) NOT NULL DEFAULT 0,
   INDEX idx_station_time (station_id, checked_at),
-  FOREIGN KEY (station_id) REFERENCES stations(id)
+  CONSTRAINT fk_price_checks_station FOREIGN KEY (station_id) REFERENCES stations(id)
 );
 
 CREATE TABLE IF NOT EXISTS subscribers (
