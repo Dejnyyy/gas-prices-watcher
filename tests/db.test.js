@@ -1,35 +1,42 @@
-// Integration tests — require DATABASE_URL in .env
 require('dotenv').config();
 const db = require('../src/db');
 
-// SAFETY: Only run against a test database. Never run against production data.
-// Set DATABASE_URL to point to tankono_test database before running tests.
-if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('test')) {
-  console.warn('WARNING: DATABASE_URL does not contain "test". Running db tests against this database will DELETE ALL data. Set DATABASE_URL to a test database.');
-}
+let stationId;
 
 beforeAll(async () => {
+  if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.includes('test')) {
+    throw new Error('Refusing to run destructive db tests: DATABASE_URL must point at a database whose name contains "test".');
+  }
+
   const mysql = require('mysql2/promise');
   const conn = await mysql.createConnection(process.env.DATABASE_URL);
   await conn.execute('DELETE FROM price_checks');
   await conn.execute('DELETE FROM subscribers');
+  await conn.execute("DELETE FROM stations WHERE slug='test-station'");
   await conn.end();
+  stationId = await db.upsertStation({ slug: 'test-station', name: 'Test', source: 'mbenzin', isPrimary: false });
 });
 
-test('saveCheck and getLatest round-trip', async () => {
-  const prices = { natural95: 36.10, diesel: 34.50, lpg: 18.20 };
-  await db.saveCheck(prices, true);
-  const latest = await db.getLatest();
+test('upsertStation is idempotent and updates name', async () => {
+  const again = await db.upsertStation({ slug: 'test-station', name: 'Test Renamed', source: 'mbenzin', isPrimary: false });
+  expect(again).toBe(stationId);
+  const stations = await db.getStations();
+  expect(stations.find((s) => s.id === stationId).name).toBe('Test Renamed');
+});
+
+test('saveCheck + getLatestForStation round-trip', async () => {
+  await db.saveCheck(stationId, { natural95: 36.10, diesel: 34.50 }, true);
+  const latest = await db.getLatestForStation(stationId);
   expect(parseFloat(latest.natural95)).toBeCloseTo(36.10);
   expect(parseFloat(latest.diesel)).toBeCloseTo(34.50);
-  expect(parseFloat(latest.lpg)).toBeCloseTo(18.20);
-  expect(latest.changed).toBe(1);
 });
 
-test('getHistory returns only changed rows', async () => {
-  await db.saveCheck({ natural95: 36.10, diesel: 34.50, lpg: 18.20 }, false);
-  const history = await db.getHistory(1);
-  expect(history.every((r) => r.changed === 1)).toBe(true);
+test('getRecentForStation returns ascending rows', async () => {
+  await db.saveCheck(stationId, { natural95: 36.20, diesel: 34.50 }, true);
+  const rows = await db.getRecentForStation(stationId, 10);
+  expect(rows.length).toBeGreaterThanOrEqual(2);
+  const times = rows.map((r) => new Date(r.checked_at).getTime());
+  expect(times).toEqual([...times].sort((a, b) => a - b));
 });
 
 test('addSubscriber and getSubscribers', async () => {
