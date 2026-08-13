@@ -7,6 +7,9 @@ const push = require('./push');
 require('dotenv').config();
 
 const app = express();
+// Behind nginx: take the client IP from X-Forwarded-For so rate limiting
+// works per user instead of lumping everyone under the proxy's IP.
+app.set('trust proxy', 1);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
