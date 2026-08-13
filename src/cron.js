@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const { scrapeAll } = require('./scrapers/index');
 const db = require('./db');
 const { sendNotification } = require('./notifier');
+const { sendPriceChangePush } = require('./push');
 
 let checking = false;
 
@@ -70,6 +71,12 @@ async function _runCheck() {
       console.log('Notified: ' + changes.map((c) => c.name).join(', '));
     } catch (err) {
       console.error('Notification error:', err.message);
+    }
+    try {
+      const { sent, pruned } = await sendPriceChangePush(changes);
+      console.log('Push sent to ' + sent + ' subscriptions (' + pruned + ' pruned).');
+    } catch (err) {
+      console.error('Push error:', err.message);
     }
   } else {
     console.log('No changes this cycle.');

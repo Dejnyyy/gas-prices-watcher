@@ -388,3 +388,114 @@ document.getElementById('subscribe-form').addEventListener('submit', async (e) =
 
 loadLatest();
 loadHistory();
+
+// ── Push notifikace (PWA) ──
+(function initPush() {
+  const block   = document.getElementById('push-block');
+  const toggle  = document.getElementById('push-toggle');
+  const label   = document.getElementById('push-toggle-label');
+  const msg     = document.getElementById('push-message');
+  const iosHint = document.getElementById('push-ios-hint');
+  if (!block) return;
+
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone =
+    window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+  if (!('serviceWorker' in navigator)) return;
+
+  const swReady = navigator.serviceWorker.register('/sw.js').catch((err) => {
+    console.error('SW registration failed:', err);
+    return null;
+  });
+
+  // Push not available (e.g. iOS Safari outside home-screen app) → show install hint on iOS.
+  if (!('PushManager' in window) || !('Notification' in window)) {
+    if (isIos && !isStandalone) {
+      block.hidden = false;
+      toggle.hidden = true;
+      iosHint.hidden = false;
+    }
+    return;
+  }
+
+  block.hidden = false;
+  if (isIos && !isStandalone) iosHint.hidden = false;
+
+  function setState(subscribed) {
+    label.textContent = subscribed ? 'Vypnout push notifikace' : 'Zapnout push notifikace';
+    toggle.dataset.subscribed = subscribed ? '1' : '';
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(base64);
+    return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+  }
+
+  async function currentSubscription() {
+    const reg = await swReady;
+    if (!reg) return null;
+    return reg.pushManager.getSubscription();
+  }
+
+  currentSubscription().then((sub) => setState(Boolean(sub)));
+
+  toggle.addEventListener('click', async () => {
+    msg.className = 'sub-message';
+    msg.textContent = '';
+    toggle.disabled = true;
+    try {
+      const reg = await swReady;
+      if (!reg) throw new Error('Service worker není k dispozici');
+      const existing = await reg.pushManager.getSubscription();
+
+      if (existing) {
+        await fetch('/api/push/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: existing.endpoint }),
+        });
+        await existing.unsubscribe();
+        setState(false);
+        msg.classList.add('success');
+        msg.textContent = 'Push notifikace vypnuty.';
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        msg.classList.add('error');
+        msg.textContent = 'Notifikace jsou zablokované v nastavení prohlížeče.';
+        return;
+      }
+
+      const keyRes = await fetch('/api/push/public-key');
+      if (!keyRes.ok) throw new Error('Push není na serveru nakonfigurovaný');
+      const { key } = await keyRes.json();
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(key),
+      });
+
+      const saveRes = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON() }),
+      });
+      if (!saveRes.ok) throw new Error('Uložení na server selhalo');
+
+      setState(true);
+      msg.classList.add('success');
+      msg.textContent = 'Hotovo! Při změně cen ti přijde notifikace.';
+    } catch (err) {
+      console.error(err);
+      msg.classList.add('error');
+      msg.textContent = 'Nepodařilo se zapnout notifikace: ' + err.message;
+    } finally {
+      toggle.disabled = false;
+    }
+  });
+})();

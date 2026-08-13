@@ -84,9 +84,27 @@ async function getSubscribers() {
   return rows.map((r) => r.email);
 }
 
+async function addPushSubscription({ endpoint, p256dh, auth }) {
+  await pool.execute(
+    `INSERT INTO push_subscriptions (endpoint, p256dh, auth) VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE p256dh = VALUES(p256dh), auth = VALUES(auth)`,
+    [endpoint, p256dh, auth]
+  );
+}
+
+async function removePushSubscription(endpoint) {
+  await pool.execute('DELETE FROM push_subscriptions WHERE endpoint = ?', [endpoint]);
+}
+
+async function getPushSubscriptions() {
+  const [rows] = await pool.execute('SELECT endpoint, p256dh, auth FROM push_subscriptions');
+  return rows;
+}
+
 module.exports = {
   upsertStation, getStations, getStationBySlug,
   saveCheck, getLatestForStation, getLatest2ForStation,
   getRecentForStation, getHistoryForStation, deleteRecord,
   addSubscriber, removeSubscriber, getSubscribers,
+  addPushSubscription, removePushSubscription, getPushSubscriptions,
 };

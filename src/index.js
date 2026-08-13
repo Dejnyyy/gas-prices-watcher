@@ -3,6 +3,7 @@ const path = require('path');
 const db = require('./db');
 const { computeLastMove, rankStations } = require('./leaderboard');
 const { startCron } = require('./cron');
+const push = require('./push');
 require('dotenv').config();
 
 const app = express();
@@ -63,6 +64,42 @@ app.post('/api/subscribe', async (req, res) => {
   if (!email || !emailRegex.test(email)) return res.status(400).json({ error: 'Invalid email' });
   try {
     await db.addSubscriber(email);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.get('/api/push/public-key', (req, res) => {
+  const key = push.getPublicKey();
+  if (!key) return res.status(503).json({ error: 'Push not configured' });
+  res.json({ key });
+});
+
+app.post('/api/push/subscribe', async (req, res) => {
+  const sub = req.body && req.body.subscription;
+  if (!sub || !sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
+    return res.status(400).json({ error: 'Invalid subscription' });
+  }
+  try {
+    await db.addPushSubscription({
+      endpoint: sub.endpoint,
+      p256dh: sub.keys.p256dh,
+      auth: sub.keys.auth,
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.post('/api/push/unsubscribe', async (req, res) => {
+  const endpoint = req.body && req.body.endpoint;
+  if (!endpoint) return res.status(400).json({ error: 'Missing endpoint' });
+  try {
+    await db.removePushSubscription(endpoint);
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
