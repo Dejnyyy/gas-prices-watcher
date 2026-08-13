@@ -17,6 +17,24 @@ function getPublicKey() {
   return enabled ? publicKey : null;
 }
 
+// SSRF guard: push endpoints must be HTTPS URLs pointing at a public hostname,
+// never an IP literal or internal name — web-push POSTs to this URL from the server.
+function isValidPushEndpoint(endpoint) {
+  if (typeof endpoint !== 'string' || endpoint.length > 500) return false;
+  let url;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'https:') return false;
+  const host = url.hostname.toLowerCase();
+  if (host === 'localhost' || host.endsWith('.local') || host.endsWith('.internal')) return false;
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(':')) return false; // IPv4/IPv6 literals
+  if (!host.includes('.')) return false;
+  return true;
+}
+
 // Sends payload to every stored subscription; prunes subscriptions the
 // push service reports as gone (410/404).
 async function sendToAll(payload) {
@@ -75,4 +93,4 @@ async function sendPriceChangePush(changes) {
   return sendToAll(buildChangePayload(changes));
 }
 
-module.exports = { getPublicKey, sendToAll, sendPriceChangePush, buildChangePayload };
+module.exports = { getPublicKey, sendToAll, sendPriceChangePush, buildChangePayload, isValidPushEndpoint };

@@ -58,7 +58,7 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
-app.post('/api/subscribe', async (req, res) => {
+app.post('/api/subscribe', rateLimit(5), async (req, res) => {
   const { email } = req.body;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!email || !emailRegex.test(email)) return res.status(400).json({ error: 'Invalid email' });
@@ -71,15 +71,37 @@ app.post('/api/subscribe', async (req, res) => {
   }
 });
 
+// Minimal in-memory rate limiter for the public write endpoints.
+const rateBuckets = new Map();
+function rateLimit(maxPerMinute) {
+  return (req, res, next) => {
+    const key = req.ip + ':' + req.path;
+    const now = Date.now();
+    const bucket = rateBuckets.get(key) || [];
+    const recent = bucket.filter((t) => now - t < 60_000);
+    if (recent.length >= maxPerMinute) {
+      return res.status(429).json({ error: 'Too many requests' });
+    }
+    recent.push(now);
+    rateBuckets.set(key, recent);
+    if (rateBuckets.size > 10_000) rateBuckets.clear(); // memory backstop
+    next();
+  };
+}
+
 app.get('/api/push/public-key', (req, res) => {
   const key = push.getPublicKey();
   if (!key) return res.status(503).json({ error: 'Push not configured' });
   res.json({ key });
 });
 
-app.post('/api/push/subscribe', async (req, res) => {
+app.post('/api/push/subscribe', rateLimit(10), async (req, res) => {
   const sub = req.body && req.body.subscription;
   if (!sub || !sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
+    return res.status(400).json({ error: 'Invalid subscription' });
+  }
+  if (!push.isValidPushEndpoint(sub.endpoint) ||
+      String(sub.keys.p256dh).length > 255 || String(sub.keys.auth).length > 255) {
     return res.status(400).json({ error: 'Invalid subscription' });
   }
   try {
@@ -95,7 +117,7 @@ app.post('/api/push/subscribe', async (req, res) => {
   }
 });
 
-app.post('/api/push/unsubscribe', async (req, res) => {
+app.post('/api/push/unsubscribe', rateLimit(10), async (req, res) => {
   const endpoint = req.body && req.body.endpoint;
   if (!endpoint) return res.status(400).json({ error: 'Missing endpoint' });
   try {
