@@ -3,7 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dejnyho Hlídač</title>
+  <title>Dejnyho Hlídač — ceny benzínu a nafty na Tank ONO</title>
+  <meta name="description" content="Dejnyho Hlídač sleduje ceny benzínu Natural 95 a nafty na čerpacích stanicích Tank ONO, ukazuje vývoj cen v grafu a pošle upozornění při každé změně." />
+  <link rel="canonical" href="https://beno.dejny.eu/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="cs_CZ" />
+  <meta property="og:site_name" content="Dejnyho Hlídač" />
+  <meta property="og:url" content="https://beno.dejny.eu/" />
+  <meta property="og:title" content="Dejnyho Hlídač — ceny benzínu a nafty na Tank ONO" />
+  <meta property="og:description" content="Dejnyho Hlídač sleduje ceny benzínu Natural 95 a nafty na čerpacích stanicích Tank ONO, ukazuje vývoj cen v grafu a pošle upozornění při každé změně." />
+  <meta property="og:image" content="https://beno.dejny.eu/icons/icon-512.png" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Dejnyho Hlídač — ceny benzínu a nafty na Tank ONO" />
+  <meta name="twitter:description" content="Dejnyho Hlídač sleduje ceny benzínu Natural 95 a nafty na čerpacích stanicích Tank ONO, ukazuje vývoj cen v grafu a pošle upozornění při každé změně." />
+  <meta name="twitter:image" content="https://beno.dejny.eu/icons/icon-512.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Dejnyho Hlídač",
+    "url": "https://beno.dejny.eu/",
+    "logo": "https://beno.dejny.eu/icons/icon-512.png",
+    "description": "Dejnyho Hlídač sleduje ceny benzínu Natural 95 a nafty na čerpacích stanicích Tank ONO, ukazuje vývoj cen v grafu a pošle upozornění při každé změně.",
+    "founder": { "@type": "Person", "name": "Daniel Slabý", "url": "https://dejny.eu" },
+    "sameAs": ["https://dejny.eu", "https://github.com/Dejnyyy/gas-prices-watcher"]
+  }
+  </script>
   <link rel="manifest" href="/manifest.webmanifest" />
   <meta name="theme-color" content="#efecea" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
@@ -23,7 +50,7 @@
   <header class="header">
     <div class="header-inner">
       <div class="header-top">
-        <div class="brand">Dejnyho Hlídač<span class="brand-dot">.</span></div>
+        <h1 class="brand">Dejnyho Hlídač<span class="brand-dot">.</span></h1>
         <div class="live-badge">
           <span class="live-dot"></span>
           živě
@@ -139,7 +166,31 @@
       </div>
     </section>
 
+    <section class="about-section">
+      <h2 class="section-title">O hlídači</h2>
+      <p>
+        Dejnyho Hlídač je malý nezávislý projekt, který každých pár minut kontroluje ceny pohonných hmot
+        na čerpacích stanicích sítě Tank ONO. Hlídá benzín Natural 95 i naftu a ukládá si každou změnu,
+        takže je vidět nejen aktuální cena za litr, ale i to, jak se vyvíjela v posledních dnech a týdnech.
+      </p>
+      <p>
+        Žebříček stanic ukazuje, kde se právě tankuje nejlevněji, graf vývoje cen pomůže odhadnout, jestli
+        se vyplatí natankovat hned, nebo počkat. Historie pak zachycuje všechna zdražení a zlevnění s přesným
+        časem. Když nechceš stránku kontrolovat sám, zapni si upozornění v prohlížeči nebo nech poslat e-mail
+        při každé změně cen. Na iPhonu stačí přidat appku na plochu a notifikace fungují jako u běžné aplikace.
+      </p>
+      <p>
+        Ceny se přebírají z veřejně dostupných údajů provozovatele a slouží pro orientaci, závazná je vždy
+        cena na stojanu. Projekt vytvořil Daniel Slabý a s provozovatelem čerpacích stanic nijak nesouvisí.
+      </p>
+    </section>
+
   </main>
+
+  <footer class="site-footer">
+    <a href="https://dejny.eu">Daniel Slabý · dejny.eu</a>
+    <a href="https://www.tank-ono.cz/cz/index.php">Tank ONO</a>
+  </footer>
 
   <script src="app.js"></script>
 </body>
