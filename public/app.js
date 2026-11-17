@@ -142,6 +142,11 @@
       });
       return;
     }
+    if (parts.length === 2 && parts.every((p) => p.c.same)) {
+      const s = latest['tank-ono'];
+      v.textContent = 'Obě stanice mají teď stejné ceny: Natural 95 za ' + fmt(s.natural95) + ' Kč, nafta za ' + fmt(s.diesel) + ' Kč.';
+      return;
+    }
     const sameStation = parts.length === 2 && !parts[0].c.same && !parts[1].c.same && parts[0].c.slug === parts[1].c.slug;
     if (sameStation) {
       const st = STATIONS[parts[0].c.slug];

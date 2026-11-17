@@ -1,6 +1,6 @@
 /* Service worker: offline shell + Web Push. Bump VERSION on every frontend deploy. */
-const VERSION = 'hlidac-v4';
-const SHELL = ['/', '/style.css?v=4', '/app.js?v=4', '/manifest.webmanifest', '/icons/icon-192.png'];
+const VERSION = 'hlidac-v5';
+const SHELL = ['/', '/style.css?v=5', '/app.js?v=5', '/manifest.webmanifest', '/icons/icon-192.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).catch(() => {}));
