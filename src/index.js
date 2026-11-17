@@ -110,10 +110,11 @@ app.post('/api/subscribe', rateLimit(5), async (req, res) => {
   const prefs = prefsFrom(req.body);
   if (!prefs) return res.status(400).json({ error: 'Vyber aspoň jednu stanici a jedno palivo' });
   try {
-    const { created } = await db.addSubscriber(email, prefs);
     // Existing addresses keep their settings (changeable only via the e-mailed link),
     // so nobody can rewrite someone else's preferences by knowing their address.
-    res.json({ ok: true, created });
+    // The response is identical either way — no e-mail enumeration.
+    await db.addSubscriber(email, prefs);
+    res.json({ ok: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DB error' });
@@ -168,30 +169,27 @@ function escapeAttr(s) {
   return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+const LEGACY_MSG = '<h1>Tenhle odkaz už neplatí</h1><p>Odhlásit se nebo upravit odběr můžeš odkazem v nejnovějším e-mailu od Hlídače.</p><a class="b" href="/">Zpět na přehled</a>';
+
 // GET only shows a confirmation (mail scanners pre-fetch links); POST unsubscribes.
 // POST also serves RFC 8058 one-click (List-Unsubscribe-Post) from mail clients.
 app.get('/unsubscribe', (req, res) => {
-  const { token, email } = req.query;
-  if (!token && !email) return res.status(400).send(page('Chyba', '<h1>Chybí odkaz</h1>'));
-  const field = token ? `<input type="hidden" name="token" value="${escapeAttr(token)}">`
-    : `<input type="hidden" name="email" value="${escapeAttr(email)}">`;
+  const { token } = req.query;
+  // Old e-mails linked /unsubscribe?email=… — that is not proof of ownership,
+  // so it never deletes anything; the newest e-mail carries a tokenised link.
+  if (!token) return res.status(400).send(page('Použij nový odkaz', LEGACY_MSG));
+  const field = `<input type="hidden" name="token" value="${escapeAttr(token)}">`;
   res.send(page('Odhlásit odběr', `<h1>Odhlásit upozornění?</h1><p>Přestanou ti chodit e-maily o změnách cen.</p>
 <form method="post" action="/unsubscribe">${field}<button type="submit">Odhlásit</button></form>
-${token ? `<p><a href="/manage.html?token=${encodeURIComponent(token)}">Radši jen upravit, co mi chodí</a></p>` : ''}`));
+<p><a href="/manage.html?token=${encodeURIComponent(token)}">Radši jen upravit, co mi chodí</a></p>`));
 });
 
 app.post('/unsubscribe', rateLimit(10), async (req, res) => {
   const token = (req.body && req.body.token) || req.query.token;
-  const email = req.body && req.body.email;
   try {
-    if (token) {
-      const sub = await db.getSubscriberByToken(token);
-      if (sub) await db.removeSubscriberByToken(sub.token);
-    } else if (email) {
-      await db.removeSubscriber(String(email)); // legacy links from pre-token e-mails
-    } else {
-      return res.status(400).send(page('Chyba', '<h1>Chybí odkaz</h1>'));
-    }
+    if (!token) return res.status(400).send(page('Použij nový odkaz', LEGACY_MSG));
+    const sub = await db.getSubscriberByToken(token);
+    if (sub) await db.removeSubscriberByToken(sub.token);
     res.send(page('Odhlášeno', '<h1>Hotovo, odhlášeno</h1><p>Už ti nebudeme posílat e-maily o změnách cen.</p><a class="b" href="/">Zpět na přehled</a>'));
   } catch (err) {
     console.error(err);
