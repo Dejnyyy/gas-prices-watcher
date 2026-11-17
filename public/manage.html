@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Nastavení upozornění · Dejnyho Hlídač</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=3" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-inner">
+      <a class="brand" href="/" style="text-decoration:none">
+        <img src="/icons/icon-192.png" alt="" width="28" height="28" class="brand-mark" />
+        <div><p class="brand-name">Dejnyho Hlídač</p><p class="brand-sub">Nastavení e-mailových upozornění</p></div>
+      </a>
+    </div>
+  </header>
+  <main class="page manage">
+    <section class="alerts" aria-labelledby="m-title">
+      <h1 id="m-title" class="block-title">Co ti má chodit</h1>
+      <p class="alerts-lead" id="m-lead">Načítám odběr…</p>
+      <div id="m-form" hidden>
+        <fieldset class="choice">
+          <legend>Stanice</legend>
+          <label class="pill"><input type="checkbox" name="stations" value="tank-ono" /><span><i class="sw sw-ono"></i>Tank ONO Teplice</span></label>
+          <label class="pill"><input type="checkbox" name="stations" value="makro" /><span><i class="sw sw-makro"></i>Makro Trmice</span></label>
+        </fieldset>
+        <fieldset class="choice">
+          <legend>Palivo</legend>
+          <label class="pill"><input type="checkbox" name="fuels" value="natural95" /><span>Natural 95</span></label>
+          <label class="pill"><input type="checkbox" name="fuels" value="diesel" /><span>Nafta</span></label>
+        </fieldset>
+        <div class="manage-actions">
+          <button type="button" class="btn btn-ink" id="m-save">Uložit nastavení</button>
+          <button type="button" class="btn btn-danger" id="m-unsub">Odhlásit odběr</button>
+        </div>
+      </div>
+      <p class="msg" id="m-msg" role="status"></p>
+    </section>
+    <p class="hint" style="text-align:center;margin-top:16px"><a href="/">Zpět na ceny</a></p>
+  </main>
+  <script>
+  (() => {
+    const token = new URLSearchParams(location.search).get('token') || '';
+    const $ = (s) => document.querySelector(s);
+    const msg = (t, k) => { $('#m-msg').className = 'msg' + (k ? ' ' + k : ''); $('#m-msg').textContent = t; };
+    const pick = (n) => [...document.querySelectorAll('input[name="' + n + '"]:checked')].map((i) => i.value);
+    const post = (u, b) => fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+
+    fetch('/api/subscription?token=' + encodeURIComponent(token)).then(async (r) => {
+      if (!r.ok) { $('#m-lead').textContent = 'Tenhle odkaz nepatří k žádnému odběru. Možná už je odhlášený.'; return; }
+      const s = await r.json();
+      $('#m-lead').textContent = '';
+      $('#m-lead').append('Odběr pro ', Object.assign(document.createElement('span'), { className: 'manage-email', textContent: s.email }), '.');
+      document.querySelectorAll('input[name="stations"]').forEach((i) => { i.checked = s.stations.includes(i.value); });
+      document.querySelectorAll('input[name="fuels"]').forEach((i) => { i.checked = s.fuels.includes(i.value); });
+      $('#m-form').hidden = false;
+    }).catch(() => { $('#m-lead').textContent = 'Odběr se nepodařilo načíst. Zkus stránku obnovit.'; });
+
+    $('#m-save').addEventListener('click', async () => {
+      const body = { token, stations: pick('stations'), fuels: pick('fuels') };
+      if (!body.stations.length || !body.fuels.length) return msg('Vyber aspoň jednu stanici a jedno palivo.', 'err');
+      const r = await post('/api/subscription', body).catch(() => null);
+      msg(r && r.ok ? 'Uloženo. Další upozornění už přijdou podle nového výběru.' : 'Uložení se nepovedlo. Zkus to znovu.', r && r.ok ? 'ok' : 'err');
+    });
+    $('#m-unsub').addEventListener('click', async () => {
+      const r = await post('/api/unsubscribe', { token }).catch(() => null);
+      if (r && r.ok) { $('#m-form').hidden = true; $('#m-lead').textContent = 'Odhlášeno. Už ti nebudou chodit žádné e-maily.'; msg(''); }
+      else msg('Odhlášení se nepovedlo. Zkus to znovu.', 'err');
+    });
+  })();
+  </script>
+</body>
+</html>

@@ -2,37 +2,41 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dejnyho Hlídač — ceny benzínu a nafty na Tank ONO</title>
-  <meta name="description" content="Dejnyho Hlídač sleduje ceny benzínu Natural 95 a nafty na čerpacích stanicích Tank ONO, ukazuje vývoj cen v grafu a pošle upozornění při každé změně." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Dejnyho Hlídač — ceny benzínu a nafty: Tank ONO Teplice a Makro Ústí</title>
+  <meta name="description" content="Aktuální ceny Natural 95 a nafty na Tank ONO Teplice a Makro Ústí nad Labem (Trmice), kontrola každých 5 minut, graf vývoje a upozornění e-mailem nebo push notifikací při každé změně." />
   <link rel="canonical" href="https://beno.dejny.eu/" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="cs_CZ" />
   <meta property="og:site_name" content="Dejnyho Hlídač" />
   <meta property="og:url" content="https://beno.dejny.eu/" />
-  <meta property="og:title" content="Dejnyho Hlídač — ceny benzínu a nafty na Tank ONO" />
-  <meta property="og:description" content="Dejnyho Hlídač sleduje ceny benzínu Natural 95 a nafty na čerpacích stanicích Tank ONO, ukazuje vývoj cen v grafu a pošle upozornění při každé změně." />
+  <meta property="og:title" content="Dejnyho Hlídač — Tank ONO Teplice vs. Makro Ústí" />
+  <meta property="og:description" content="Kde je teď levnější Natural 95 a nafta: Tank ONO Teplice, nebo Makro Ústí nad Labem? Ceny každých 5 minut, graf a upozornění na změny." />
   <meta property="og:image" content="https://beno.dejny.eu/icons/icon-512.png" />
   <meta property="og:image:width" content="512" />
   <meta property="og:image:height" content="512" />
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Dejnyho Hlídač — ceny benzínu a nafty na Tank ONO" />
-  <meta name="twitter:description" content="Dejnyho Hlídač sleduje ceny benzínu Natural 95 a nafty na čerpacích stanicích Tank ONO, ukazuje vývoj cen v grafu a pošle upozornění při každé změně." />
+  <meta name="twitter:title" content="Dejnyho Hlídač — Tank ONO Teplice vs. Makro Ústí" />
+  <meta name="twitter:description" content="Kde je teď levnější Natural 95 a nafta: Tank ONO Teplice, nebo Makro Ústí nad Labem? Ceny každých 5 minut, graf a upozornění na změny." />
   <meta name="twitter:image" content="https://beno.dejny.eu/icons/icon-512.png" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "Organization",
+    "@type": "WebSite",
     "name": "Dejnyho Hlídač",
     "url": "https://beno.dejny.eu/",
-    "logo": "https://beno.dejny.eu/icons/icon-512.png",
-    "description": "Dejnyho Hlídač sleduje ceny benzínu Natural 95 a nafty na čerpacích stanicích Tank ONO, ukazuje vývoj cen v grafu a pošle upozornění při každé změně.",
-    "founder": { "@type": "Person", "name": "Daniel Slabý", "url": "https://dejny.eu" },
-    "sameAs": ["https://dejny.eu", "https://github.com/Dejnyyy/gas-prices-watcher"]
+    "description": "Hlídač cen Natural 95 a nafty na Tank ONO Teplice a Makro Ústí nad Labem (Trmice).",
+    "inLanguage": "cs",
+    "publisher": {
+      "@type": "Person", "name": "Daniel Slabý", "url": "https://dejny.eu",
+      "sameAs": ["https://dejny.eu", "https://github.com/Dejnyyy/gas-prices-watcher"]
+    }
   }
   </script>
   <link rel="manifest" href="/manifest.webmanifest" />
-  <meta name="theme-color" content="#efecea" />
+  <meta name="theme-color" content="#eceef1" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#121417" media="(prefers-color-scheme: dark)" />
+  <meta name="color-scheme" content="light dark" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -41,157 +45,144 @@
   <meta name="apple-mobile-web-app-title" content="Hlídač" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=3" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous" defer></script>
+  <script src="app.js?v=3" defer></script>
 </head>
 <body>
 
-  <header class="header">
-    <div class="header-inner">
-      <div class="header-top">
-        <h1 class="brand">Dejnyho Hlídač<span class="brand-dot">.</span></h1>
-        <div class="live-badge">
-          <span class="live-dot"></span>
-          živě
+  <header class="top">
+    <div class="top-inner">
+      <div class="brand">
+        <img src="/icons/icon-192.png" alt="" width="28" height="28" class="brand-mark" />
+        <div>
+          <h1 class="brand-name">Dejnyho Hlídač</h1>
+          <p class="brand-sub">Ceny paliv Tank ONO Teplice a Makro Ústí nad Labem</p>
         </div>
       </div>
-      <p class="header-sub">Hlídač cen na benzínkách Tank ONO</p>
-      <p class="header-time" id="last-update"></p>
+      <p class="pulse" id="pulse" aria-live="polite"><span class="pulse-dot" aria-hidden="true"></span><span id="pulse-text">načítám ceny</span></p>
     </div>
   </header>
 
-  <main class="container">
+  <main class="page">
 
-    <section class="prices-section">
-      <div class="cards">
+    <p class="verdict" id="verdict" aria-live="polite">&nbsp;</p>
 
-        <div class="card card--natural">
-          <div class="card-label">
-            <span class="card-dot"></span>
-            Natural 95
+    <section class="board" aria-label="Aktuální ceny">
+      <article class="totem" data-station="tank-ono" id="totem-tank-ono">
+        <header class="totem-head">
+          <h2 class="totem-name">Tank ONO</h2>
+          <p class="totem-loc">ČS Teplice</p>
+        </header>
+        <div class="totem-panels"></div>
+        <p class="totem-foot"></p>
+        <span class="totem-post" aria-hidden="true"></span>
+      </article>
+      <article class="totem" data-station="makro" id="totem-makro">
+        <header class="totem-head">
+          <h2 class="totem-name">Makro</h2>
+          <p class="totem-loc">Ústí n. L. – Trmice</p>
+        </header>
+        <div class="totem-panels"></div>
+        <p class="totem-foot"></p>
+        <span class="totem-post" aria-hidden="true"></span>
+      </article>
+
+      <section class="alerts" id="alerts" aria-labelledby="alerts-title">
+        <h2 id="alerts-title" class="block-title">Upozornění na změnu</h2>
+        <p class="alerts-lead">Pošlu zprávu hned, jak se cena pohne. Vyber si, co tě zajímá.</p>
+
+        <fieldset class="choice">
+          <legend>Stanice</legend>
+          <label class="pill"><input type="checkbox" name="stations" value="tank-ono" checked /><span><i class="sw sw-ono"></i>Tank ONO Teplice</span></label>
+          <label class="pill"><input type="checkbox" name="stations" value="makro" checked /><span><i class="sw sw-makro"></i>Makro Trmice</span></label>
+        </fieldset>
+        <fieldset class="choice">
+          <legend>Palivo</legend>
+          <label class="pill"><input type="checkbox" name="fuels" value="natural95" checked /><span>Natural 95</span></label>
+          <label class="pill"><input type="checkbox" name="fuels" value="diesel" checked /><span>Nafta</span></label>
+        </fieldset>
+        <p class="hint" id="choice-hint" role="alert"></p>
+
+        <form id="subscribe-form" class="mail" novalidate>
+          <label for="sub-email" class="sr-only">E-mail</label>
+          <input type="email" id="sub-email" placeholder="tvuj@email.cz" required autocomplete="email" inputmode="email" />
+          <button type="submit" class="btn btn-ink">Odebírat e-mailem</button>
+        </form>
+        <p id="sub-message" class="msg" role="status"></p>
+
+        <div id="push-block" class="push" hidden>
+          <div class="push-row">
+            <button id="push-toggle" type="button" class="btn btn-line">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span id="push-toggle-label">Zapnout notifikace v telefonu</span>
+            </button>
+            <button id="push-save" type="button" class="btn btn-ink" hidden>Uložit výběr</button>
           </div>
-          <div class="card-price-row">
-            <span class="card-price" id="price-natural95">—</span>
-            <span class="card-currency">Kč / l</span>
-          </div>
+          <p id="push-message" class="msg" role="status"></p>
+          <p id="push-ios-hint" class="hint" hidden>Na iPhonu nejdřív přidej Hlídače na plochu (Sdílet, Přidat na plochu) a notifikace zapni v něm.</p>
         </div>
-
-        <div class="card card--diesel">
-          <div class="card-label">
-            <span class="card-dot"></span>
-            Diesel
-          </div>
-          <div class="card-price-row">
-            <span class="card-price" id="price-diesel">—</span>
-            <span class="card-currency">Kč / l</span>
-          </div>
-        </div>
-
-      </div>
+      </section>
     </section>
 
-    <section class="leaderboard-section">
-      <div class="section-header">
-        <h2 class="section-title">Žebříček stanic</h2>
-        <span class="section-badge" id="lb-city">Ústí nad Labem</span>
+    <section class="chart-block" aria-labelledby="chart-title">
+      <div class="block-bar">
+        <h2 id="chart-title" class="block-title">Vývoj cen</h2>
+        <div class="controls">
+          <div class="seg" role="group" aria-label="Palivo v grafu">
+            <button type="button" data-fuel="natural95" aria-pressed="true">Natural 95</button>
+            <button type="button" data-fuel="diesel" aria-pressed="false">Nafta</button>
+          </div>
+          <div class="seg" role="group" aria-label="Období">
+            <button type="button" data-days="30" aria-pressed="false">30 dní</button>
+            <button type="button" data-days="90" aria-pressed="true">90 dní</button>
+            <button type="button" data-days="365" aria-pressed="false">Rok</button>
+          </div>
+        </div>
       </div>
-      <div class="table-wrap">
-        <table id="leaderboard-table">
-          <thead>
-            <tr>
-              <th>Stanice</th>
-              <th class="num">Natural 95</th>
-              <th class="num">Diesel</th>
-              <th class="num">Poslední posun</th>
-            </tr>
-          </thead>
-          <tbody id="leaderboard-body"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="chart-section">
-      <div class="section-header">
-        <h2 class="section-title">Vývoj cen</h2>
-        <span class="section-badge" id="chart-days-badge">načítám…</span>
+      <div class="legend" id="legend">
+        <span><i class="sw sw-ono"></i>Tank ONO Teplice</span>
+        <span><i class="sw sw-makro"></i>Makro Trmice</span>
       </div>
       <div class="chart-wrap">
-        <canvas id="priceChart"></canvas>
+        <canvas id="priceChart" role="img" aria-label="Graf vývoje ceny paliva na obou stanicích"></canvas>
       </div>
     </section>
 
-    <section class="history-section">
-      <div class="section-header">
-        <h2 class="section-title">Historie</h2>
-        <span class="section-badge" id="row-count">načítám…</span>
-      </div>
-      <div class="table-wrap">
-        <table id="history-table">
-          <thead>
-            <tr>
-              <th>Datum a čas</th>
-              <th>Natural 95</th>
-              <th>Diesel</th>
-              <th>Změna</th>
-            </tr>
-          </thead>
-          <tbody id="history-body"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="subscribe-section">
-      <div class="subscribe-inner">
-        <h2 class="section-title">Upozornění na změny</h2>
-
-        <div id="push-block" class="push-block" hidden>
-          <button id="push-toggle" type="button" class="push-toggle">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span id="push-toggle-label">Zapnout push notifikace</span>
-          </button>
-          <p id="push-message" class="sub-message"></p>
-          <p id="push-ios-hint" class="push-hint" hidden>Na iPhonu nejdřív přidej appku na plochu: Sdílet&nbsp;→ Přidat na plochu. Pak v ní půjdou notifikace zapnout.</p>
+    <div class="lower">
+      <section class="history" aria-labelledby="history-title">
+        <div class="block-bar">
+          <h2 id="history-title" class="block-title">Poslední změny</h2>
+          <span class="count" id="history-count"></span>
         </div>
+        <ol class="changes" id="changes"></ol>
+        <button type="button" class="btn btn-line more" id="history-more" hidden>Ukázat starší změny</button>
+      </section>
 
-        <p class="subscribe-desc">E-mail při každé změně cen.</p>
-        <form id="subscribe-form">
-          <input type="email" id="sub-email" placeholder="vas@email.cz" required autocomplete="email" />
-          <button type="submit">
-            Odebírat
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </button>
-        </form>
-        <p id="sub-message" class="sub-message"></p>
-      </div>
-    </section>
-
-    <section class="about-section">
-      <h2 class="section-title">O hlídači</h2>
-      <p>
-        Dejnyho Hlídač je malý nezávislý projekt, který každých pár minut kontroluje ceny pohonných hmot
-        na čerpacích stanicích sítě Tank ONO. Hlídá benzín Natural 95 i naftu a ukládá si každou změnu,
-        takže je vidět nejen aktuální cena za litr, ale i to, jak se vyvíjela v posledních dnech a týdnech.
-      </p>
-      <p>
-        Žebříček stanic ukazuje, kde se právě tankuje nejlevněji, graf vývoje cen pomůže odhadnout, jestli
-        se vyplatí natankovat hned, nebo počkat. Historie pak zachycuje všechna zdražení a zlevnění s přesným
-        časem. Když nechceš stránku kontrolovat sám, zapni si upozornění v prohlížeči nebo nech poslat e-mail
-        při každé změně cen. Na iPhonu stačí přidat appku na plochu a notifikace fungují jako u běžné aplikace.
-      </p>
-      <p>
-        Ceny se přebírají z veřejně dostupných údajů provozovatele a slouží pro orientaci, závazná je vždy
-        cena na stojanu. Projekt vytvořil Daniel Slabý a s provozovatelem čerpacích stanic nijak nesouvisí.
-      </p>
-    </section>
+      <section class="about" aria-labelledby="about-title">
+        <h2 id="about-title" class="block-title">Jak hlídač funguje</h2>
+        <p>
+          Každých pět minut si přečte ceník Tank ONO pro čerpací stanici v Teplicích a ceny na čerpací stanici
+          Makro v Ústí nad Labem (Žižkova, u Trmic). Hlídá Natural 95 a naftu a ukládá každou změnu, takže je vidět,
+          kdo zrovna zlevnil, o kolik a kdy.
+        </p>
+        <p>
+          Upozornění chodí jen na stanice a paliva, které si vybereš. Nastavení e-mailu změníš odkazem
+          v každém upozornění, notifikace v telefonu přímo tady na stránce.
+        </p>
+        <p class="fine">
+          Ceny slouží pro orientaci, platí cena na stojanu. Projekt vytvořil Daniel Slabý a s provozovateli
+          stanic nijak nesouvisí.
+        </p>
+      </section>
+    </div>
 
   </main>
 
-  <footer class="site-footer">
-    <a href="https://dejny.eu">Daniel Slabý · dejny.eu</a>
-    <a href="https://www.tank-ono.cz/cz/index.php">Tank ONO</a>
+  <footer class="foot">
+    <a href="https://dejny.eu">Daniel Slabý, dejny.eu</a>
+    <span>Zdroje: <a href="https://www.tank-ono.cz/cz/index.php?page=cenik">tank-ono.cz</a>, <a href="https://www.makro.cz/prodejny/usti-nad-labem">makro.cz</a>, <a href="https://www.mbenzin.cz">Ceny: mbenzin.cz</a></span>
   </footer>
-
-  <script src="app.js"></script>
 </body>
 </html>

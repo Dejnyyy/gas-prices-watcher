@@ -1,12 +1,12 @@
 {
   "name": "Dejnyho Hlídač",
   "short_name": "Hlídač",
-  "description": "Hlídač cen na benzínkách Tank ONO — Ústí nad Labem",
+  "description": "Ceny Natural 95 a nafty: Tank ONO Teplice a Makro Ústí nad Labem (Trmice)",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#efecea",
-  "theme_color": "#efecea",
+  "background_color": "#eceef1",
+  "theme_color": "#eceef1",
   "lang": "cs",
   "icons": [
     {
