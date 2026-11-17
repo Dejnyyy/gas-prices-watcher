@@ -1,4 +1,4 @@
-const { computeLastMove, rankStations } = require('../src/leaderboard');
+const { computeLastMove, computeLastMoveByFuel } = require('../src/leaderboard');
 
 describe('computeLastMove', () => {
   test('returns [] when history never changes', () => {
@@ -54,30 +54,19 @@ describe('computeLastMove', () => {
   });
 });
 
-describe('rankStations', () => {
-  const stations = [
-    { slug: 'a', name: 'A', is_primary: 0, natural95: 40.5, diesel: 39.9, lastMove: [] },
-    { slug: 'tank-ono', name: 'Tank ONO', is_primary: 1, natural95: 39.5, diesel: 38.9, lastMove: [] },
-    { slug: 'b', name: 'B', is_primary: 0, natural95: 40.5, diesel: 39.5, lastMove: [] },
-  ];
-
-  test('sorts by natural95 then diesel and assigns rank', () => {
-    const ranked = rankStations(stations, 10);
-    expect(ranked.map((s) => s.slug)).toEqual(['tank-ono', 'b', 'a']);
-    expect(ranked.map((s) => s.rank)).toEqual([1, 2, 3]);
-  });
-
-  test('caps to the limit', () => {
-    expect(rankStations(stations, 2)).toHaveLength(2);
-  });
-
-  test('sorts string-valued prices numerically, not lexicographically', () => {
-    const stringStations = [
-      { slug: 'x', name: 'X', is_primary: 0, natural95: '9.50', diesel: '9.00', lastMove: [] },
-      { slug: 'y', name: 'Y', is_primary: 0, natural95: '40.50', diesel: '39.00', lastMove: [] },
+describe('computeLastMoveByFuel', () => {
+  test('tracks each fuel independently', () => {
+    const rows = [
+      { natural95: 40.0, diesel: 38.0, checked_at: 'a' },
+      { natural95: 39.5, diesel: 38.0, checked_at: 'b' },
+      { natural95: 39.5, diesel: 37.5, checked_at: 'c' },
+      { natural95: 39.5, diesel: 37.5, checked_at: 'd' },
     ];
-    // lexicographically '40.50' < '9.50'; numerically 9.5 < 40.5 -> 'x' must rank first
-    const ranked = rankStations(stringStations, 10);
-    expect(ranked.map((s) => s.slug)).toEqual(['x', 'y']);
+    const m = computeLastMoveByFuel(rows);
+    expect(m.natural95).toMatchObject({ delta: -0.5, at: 'b', direction: 'down' });
+    expect(m.diesel).toMatchObject({ delta: -0.5, at: 'c' });
+  });
+  test('null when a fuel never moved', () => {
+    expect(computeLastMoveByFuel([{ natural95: 1, diesel: 2 }, { natural95: 1, diesel: 2 }])).toEqual({ natural95: null, diesel: null });
   });
 });

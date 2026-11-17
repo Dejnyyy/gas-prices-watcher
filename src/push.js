@@ -1,5 +1,7 @@
 const webpush = require('web-push');
 const db = require('./db');
+const { ALL_PREFS } = require('./stations');
+const { flattenChanges, filterForPrefs, buildPushPayload } = require('./changes');
 require('dotenv').config();
 
 const publicKey = process.env.VAPID_PUBLIC_KEY;
@@ -41,22 +43,26 @@ function isValidPushEndpoint(endpoint) {
   return PUSH_HOST_ALLOWLIST.some((re) => re.test(host));
 }
 
-// Sends payload to every stored subscription; prunes subscriptions the
-// push service reports as gone (410/404).
-async function sendToAll(payload) {
-  if (!enabled) return { sent: 0, pruned: 0 };
+// Sends one payload per stored subscription, built by `payloadFor(sub)`
+// (return null to skip that subscriber). Prunes subscriptions the push service
+// reports as gone (410/404).
+async function sendToAll(payloadFor) {
+  if (!enabled) return { sent: 0, pruned: 0, skipped: 0 };
   const subs = await db.getPushSubscriptions();
-  const body = JSON.stringify(payload);
+  const build = typeof payloadFor === 'function' ? payloadFor : () => payloadFor;
   let sent = 0;
   let pruned = 0;
+  let skipped = 0;
 
   for (const sub of subs) {
+    const payload = build(sub);
+    if (!payload) { skipped++; continue; }
     const subscription = {
       endpoint: sub.endpoint,
       keys: { p256dh: sub.p256dh, auth: sub.auth },
     };
     try {
-      await webpush.sendNotification(subscription, body);
+      await webpush.sendNotification(subscription, JSON.stringify(payload), { TTL: 6 * 3600 });
       sent++;
     } catch (err) {
       if (err.statusCode === 410 || err.statusCode === 404) {
@@ -67,36 +73,26 @@ async function sendToAll(payload) {
       }
     }
   }
-  return { sent, pruned };
+  return { sent, pruned, skipped };
 }
 
-function fuelDelta(oldV, newV) {
-  return Math.round((newV - oldV) * 100) / 100;
+// Per-subscriber payload: only the station/fuel changes they asked for.
+function payloadForSubscriber(changes, sub, latest = {}) {
+  const prefs = { stations: sub.stations || ALL_PREFS.stations, fuels: sub.fuels || ALL_PREFS.fuels };
+  const items = filterForPrefs(flattenChanges(changes), prefs);
+  if (!items.length) return null;
+  return buildPushPayload(items, latest, prefs);
 }
 
-// Builds a compact notification for a set of price changes.
-function buildChangePayload(changes) {
-  const lines = changes.map((c) => {
-    const parts = [];
-    const dn = fuelDelta(c.old.natural95, c.new.natural95);
-    const dd = fuelDelta(c.old.diesel, c.new.diesel);
-    if (dn !== 0) {
-      parts.push('Natural ' + (dn > 0 ? '↑' : '↓') + ' ' + c.new.natural95.toFixed(2).replace('.', ',') + ' Kč');
-    }
-    if (dd !== 0) {
-      parts.push('Diesel ' + (dd > 0 ? '↑' : '↓') + ' ' + c.new.diesel.toFixed(2).replace('.', ',') + ' Kč');
-    }
-    return c.name + ': ' + (parts.length ? parts.join(', ') : 'beze změny');
-  });
-  return {
-    title: 'Dejnyho Hlídač — změna cen',
-    body: lines.join('\n'),
-    url: '/',
-  };
+// Backwards-compatible helper: payload for someone following everything.
+function buildChangePayload(changes, latest = {}) {
+  return payloadForSubscriber(changes, ALL_PREFS, latest);
 }
 
-async function sendPriceChangePush(changes) {
-  return sendToAll(buildChangePayload(changes));
+async function sendPriceChangePush(changes, { latest = {} } = {}) {
+  return sendToAll((sub) => payloadForSubscriber(changes, sub, latest));
 }
 
-module.exports = { getPublicKey, sendToAll, sendPriceChangePush, buildChangePayload, isValidPushEndpoint };
+module.exports = {
+  getPublicKey, sendToAll, sendPriceChangePush, buildChangePayload, payloadForSubscriber, isValidPushEndpoint,
+};

@@ -39,20 +39,26 @@ test('getRecentForStation returns ascending rows', async () => {
   expect(times).toEqual([...times].sort((a, b) => a - b));
 });
 
-test('addSubscriber and getSubscribers', async () => {
-  await db.addSubscriber('test@example.com');
+test('addSubscriber stores prefs + token, getSubscribers returns them', async () => {
+  const { created, subscriber } = await db.addSubscriber('test@example.com', { stations: ['makro'], fuels: ['diesel'] });
+  expect(created).toBe(true);
+  expect(subscriber.token).toMatch(/^[a-f0-9]{32}$/);
   const subs = await db.getSubscribers();
-  expect(subs).toContain('test@example.com');
+  expect(subs.find((s) => s.email === 'test@example.com')).toMatchObject({ stations: ['makro'], fuels: ['diesel'] });
 });
 
-test('addSubscriber ignores duplicate email', async () => {
-  await db.addSubscriber('test@example.com');
-  const subs = await db.getSubscribers();
-  expect(subs.filter((e) => e === 'test@example.com').length).toBe(1);
+test('addSubscriber ignores duplicate email and keeps prefs', async () => {
+  const { created } = await db.addSubscriber('test@example.com', { stations: ['tank-ono'], fuels: ['natural95'] });
+  expect(created).toBe(false);
+  const subs = (await db.getSubscribers()).filter((s) => s.email === 'test@example.com');
+  expect(subs).toHaveLength(1);
+  expect(subs[0].stations).toEqual(['makro']);
 });
 
-test('removeSubscriber deletes by email', async () => {
-  await db.removeSubscriber('test@example.com');
-  const subs = await db.getSubscribers();
-  expect(subs).not.toContain('test@example.com');
+test('prefs update + removal by token', async () => {
+  const sub = await db.getSubscriberByEmail('test@example.com');
+  expect(await db.updateSubscriberPrefs(sub.token, { stations: ['tank-ono', 'makro'], fuels: ['natural95'] })).toBe(true);
+  expect((await db.getSubscriberByToken(sub.token)).fuels).toEqual(['natural95']);
+  await db.removeSubscriberByToken(sub.token);
+  expect(await db.getSubscriberByEmail('test@example.com')).toBeNull();
 });
