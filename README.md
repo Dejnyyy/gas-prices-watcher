@@ -1,33 +1,74 @@
-# Hlídač cen Tank ONO
+# Dejnyho Hlídač (beno.dejny.eu)
 
-Scrapes Tank ONO official prices plus mbenzin.cz competitor listings for Ústí nad Labem every 5 minutes. Emails subscribers a single digest when any tracked station's price changes. Web dashboard with a cheapest-first leaderboard.
+Watches Natural 95 and diesel prices at exactly two stations, every 5 minutes:
+
+| Station | Source |
+| --- | --- |
+| **Tank ONO – ČS Teplice** | `tank-ono.cz` ceník, row matched by name (`TANK_ONO_STATION`, default `ČS Teplice`). Missing row ⇒ logged, no data saved (no silent fallback to another station). |
+| **Makro Ústí nad Labem (Žižkova, Trmice)** | 1) official store page `makro.cz/prodejny/usti-nad-labem` (“Ceny paliv” block), 2) mbenzin.cz listing, station `#17681` (`MBENZIN_MAKRO_ID`). A source that answers 403 / bot gate is skipped for an hour. |
+
+Every change is stored; subscribers get one e-mail / push per run containing only the
+stations and fuels they chose. The headline (subject, push title) is the change itself,
+e.g. `Tank ONO Teplice: Natural 95 ↓ 37,90 Kč (−0,60)`.
+
+### Makro source status (Nov 2026)
+
+Both Makro sources currently refuse non-browser clients:
+
+- `makro.cz` sits behind Akamai bot protection (HTTP 403 for any script, from the VPS too).
+- `mbenzin.cz` serves a JavaScript “Ověřuji prohlížeč…” gate and asks script users to
+  request a free access key at <https://www.mbenzin.cz/klic> (condition: show the link
+  “Ceny: mbenzin.cz”, already in the page footer).
+
+Once mbenzin issues a key, put it into `.env` the way they specify — either
+`MBENZIN_COOKIE="name=value"` (sent as Cookie header) or `MBENZIN_QUERY="klic=…"`
+(appended to the URL) — and rebuild. Until then Makro shows its last verified price
+marked as stale. A price read off the official site can be recorded by hand
+(no notification is sent): `node scripts/set-price.js makro 37.90 42.90`.
 
 ## Setup
 
 1. `npm install`
 2. Copy `.env.example` to `.env` and fill in values
-3. Run SQL from `schema.sql` to create the database tables
-4. Run the migration to add the stations table and backfill existing data: `node scripts/migrate-multistation.js`
-5. `npm start`
+3. Create tables from `schema.sql` (fresh DB) **or** migrate an existing one:
+   `node scripts/migrate-v2-prefs.js` (idempotent; adds prefs + tokens, marks other stations inactive, keeps their history)
+4. `npm start`
 
-## Deployment Notes
+## Tests
 
-- Deploy the app code and run `node scripts/migrate-multistation.js` together — the migration makes `price_checks.station_id` NOT NULL, so the new cron (which supplies `station_id`) must be live at the same time.
-- `tests/db.test.js` is destructive (it clears tables) and refuses to run unless `DATABASE_URL` points at a database whose name contains `test`. Run the rest with `npx jest --testPathIgnorePatterns=db.test`.
+`npx jest --testPathIgnorePatterns=db.test`
 
-## VPS deployment (pm2)
+`tests/db.test.js` is destructive and refuses to run unless `DATABASE_URL` points at a
+database whose name contains `test`. **The local `.env` points at production — never run
+the app (`npm start` starts the cron and sends e-mails) or db tests against it.**
 
-    npm install -g pm2
-    pm2 start ecosystem.config.js
-    pm2 save
-    pm2 startup
+## API
 
-## Nginx config
+- `GET /api/stations/latest` – both stations: prices, `checked_at`, last move per fuel
+- `GET /api/history?station=all|tank-ono|makro&days=1..730`
+- `POST /api/subscribe` `{ email, stations[], fuels[] }` – always `{ ok: true }`; an existing address keeps its prefs
+- `GET|POST /api/subscription` `{ token, stations[], fuels[] }` – manage page (`/manage.html?token=…`, linked in every e-mail)
+- `POST /api/unsubscribe` `{ token }`, `GET /unsubscribe?token=` (confirm page), `POST /unsubscribe?token=` (RFC 8058 one-click)
+- `POST /api/push/subscribe` `{ subscription, stations[], fuels[] }`, `/api/push/status`, `/api/push/prefs`, `/api/push/unsubscribe`
 
-    server {
-        server_name tankono.bagros.eu;
-        location / {
-            proxy_pass http://localhost:3000;
-            proxy_set_header Host $host;
-        }
-    }
+Stations: `tank-ono`, `makro`. Fuels: `natural95`, `diesel`.
+
+## Scripts
+
+- `scripts/migrate-v2-prefs.js` – v2 schema migration (idempotent)
+- `scripts/send-test-email.js [--dry]` – one sample e-mail to `NOTIFY_EMAIL` only
+- `scripts/set-price.js <slug> <n95> <diesel>` – record a manually verified price
+
+## Production (VPS)
+
+Docker compose service `app` in `~/gas-prices-watcher` (host port 3005, nginx `beno.dejny.eu`).
+The VPS has no GitHub access — deploy with a bundle:
+
+    git bundle create /tmp/beno.bundle main
+    scp /tmp/beno.bundle ubuntu@dejnyhoserver.bagros.eu:/tmp/
+    # on the VPS (keeps the local "3005:3000" port edit in docker-compose.yml)
+    cd ~/gas-prices-watcher && git stash && git pull /tmp/beno.bundle main && git stash pop
+    sudo docker compose up -d --build
+    sudo docker compose exec app node scripts/migrate-v2-prefs.js   # once, after a DB backup
+
+Bump `VERSION` in `public/sw.js` and the `?v=` asset query on frontend changes.
