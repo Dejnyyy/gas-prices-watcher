@@ -4,12 +4,22 @@ const cheerio = require('cheerio');
 const CITY = 'usti-nad-labem';
 const N95_URL = `https://www.mbenzin.cz/Nejlevnejsi-benzin/${CITY}`;
 const DIESEL_URL = `https://www.mbenzin.cz/Nejlevnejsi-nafta/${CITY}`;
-const UA = 'Mozilla/5.0 (compatible; DejnyHlidac/1.0; +https://beno.dejny.eu)';
+const UA = 'Mozilla/5.0 (compatible; DejnyHlidac/2.0; +https://beno.dejny.eu)';
 
 function parsePrice(raw) {
   const cleaned = (raw || '').trim().replace(',', '.').replace(/[^\d.]/g, '');
   const value = parseFloat(cleaned);
   return isNaN(value) || value === 0 ? null : value;
+}
+
+/**
+ * Since Aug 2026 mbenzin serves a JavaScript "Ověřuji prohlížeč…" gate to
+ * non-browser clients and asks scripts to request an access key at
+ * https://www.mbenzin.cz/klic. We detect the gate instead of mis-parsing it.
+ */
+function isGatePage(html) {
+  return /Ověřuji prohlížeč|\/_vratna\/|mbenzin\.cz\/klic/.test(String(html || '')) &&
+    !/itemtype="http:\/\/www\.data-vocabulary\.org\/LocalBusiness"/.test(String(html || ''));
 }
 
 /**
@@ -26,6 +36,7 @@ function parseListing(html, fuelKey) {
     const name = card.find('[itemprop="name"]').first().text().trim();
     const id = card.find('meta[itemprop="@id"]').attr('content');
     if (!name || !id) return;
+    const street = card.find('[itemprop="streetAddress"]').first().text().trim();
     let price = null;
     card.find('.text-muted.font-s-07r').each((__, lbl) => {
       const label = $(lbl).text().trim();
@@ -33,16 +44,16 @@ function parseListing(html, fuelKey) {
         price = parsePrice($(lbl).next().text());
       }
     });
-    out.push({ id: String(id), name, [fuelKey]: price });
+    out.push({ id: String(id), name, street, [fuelKey]: price });
   });
   return out;
 }
 
 function joinFuels(n95List, dieselList) {
   const byId = new Map();
-  for (const s of n95List) byId.set(s.id, { id: s.id, name: s.name, natural95: s.natural95, diesel: null });
+  for (const s of n95List) byId.set(s.id, { id: s.id, name: s.name, street: s.street, natural95: s.natural95, diesel: null });
   for (const s of dieselList) {
-    const entry = byId.get(s.id) || { id: s.id, name: s.name, natural95: null, diesel: null };
+    const entry = byId.get(s.id) || { id: s.id, name: s.name, street: s.street, natural95: null, diesel: null };
     entry.diesel = s.diesel;
     byId.set(s.id, entry);
   }
@@ -51,13 +62,33 @@ function joinFuels(n95List, dieselList) {
   );
 }
 
+// Optional access credentials once mbenzin issues a key (see README):
+//   MBENZIN_COOKIE="name=value"  -> sent as Cookie header
+//   MBENZIN_QUERY="klic=XYZ"     -> appended to the listing URLs
+function withAccess(url) {
+  const q = process.env.MBENZIN_QUERY;
+  if (!q) return url;
+  return url + (url.includes('?') ? '&' : '?') + q.replace(/^[?&]/, '');
+}
+
+async function fetchListing(url, fuelKey) {
+  const headers = { 'User-Agent': UA, 'Accept-Language': 'cs' };
+  if (process.env.MBENZIN_COOKIE) headers.Cookie = process.env.MBENZIN_COOKIE;
+  const res = await axios.get(withAccess(url), { timeout: 15000, headers });
+  if (isGatePage(res.data)) {
+    const err = new Error('mbenzin bot gate (needs access key — https://www.mbenzin.cz/klic)');
+    err.code = 'GATED';
+    throw err;
+  }
+  return parseListing(res.data, fuelKey);
+}
+
 async function fetchStations() {
-  const opts = { timeout: 10000, headers: { 'User-Agent': UA } };
   const [n95, diesel] = await Promise.all([
-    axios.get(N95_URL, opts).then((r) => parseListing(r.data, 'natural95')),
-    axios.get(DIESEL_URL, opts).then((r) => parseListing(r.data, 'diesel')),
+    fetchListing(N95_URL, 'natural95'),
+    fetchListing(DIESEL_URL, 'diesel'),
   ]);
   return joinFuels(n95, diesel);
 }
 
-module.exports = { parseListing, joinFuels, fetchStations, CITY };
+module.exports = { parseListing, joinFuels, fetchStations, isGatePage, CITY };

@@ -1,47 +1,33 @@
-jest.mock('../../src/scrapers/tankOno', () => ({
-  fetchPrices: jest.fn(),
-  KEY: 'tank-ono',
-}));
-jest.mock('../../src/scrapers/mbenzin', () => ({
-  fetchStations: jest.fn(),
-}));
+jest.mock('../../src/scrapers/tankOno', () => ({ fetchPrices: jest.fn() }));
+jest.mock('../../src/scrapers/makro', () => ({ fetchPrices: jest.fn() }));
 
 const tankOno = require('../../src/scrapers/tankOno');
-const mbenzin = require('../../src/scrapers/mbenzin');
+const makro = require('../../src/scrapers/makro');
 const { scrapeAll } = require('../../src/scrapers/index');
 
+const quiet = { log: () => {}, logError: () => {} };
 beforeEach(() => jest.clearAllMocks());
 
-test('combines Tank ONO (primary) with only allow-listed mbenzin brands', async () => {
-  tankOno.fetchPrices.mockResolvedValue({ natural95: 39.5, diesel: 38.9 });
-  mbenzin.fetchStations.mockResolvedValue([
-    { id: '18065', name: 'VS Petrol', natural95: 40.5, diesel: 39.9 }, // not allow-listed
-    { id: '17681', name: 'Makro', natural95: 41.5, diesel: 42.5 },
-    { id: '16871', name: 'EuroOil', natural95: 41.5, diesel: 41.9 },
-  ]);
-  const all = await scrapeAll();
-  expect(all[0]).toMatchObject({ slug: 'tank-ono', source: 'tank_ono', isPrimary: true, natural95: 39.5, diesel: 38.9 });
-  const slugs = all.map((s) => s.slug);
-  expect(slugs).toEqual(['tank-ono', 'makro', 'eurooil']);
-  expect(slugs).not.toContain('mbenzin-18065');
+test('returns exactly the two tracked stations with config metadata', async () => {
+  tankOno.fetchPrices.mockResolvedValue({ natural95: 37.9, diesel: 42.9, station: 'ČS Teplice' });
+  makro.fetchPrices.mockResolvedValue({ natural95: 37.5, diesel: 42.5, source: 'makro.cz' });
+  const all = await scrapeAll(quiet);
+  expect(all.map((s) => s.slug)).toEqual(['tank-ono', 'makro']);
+  expect(all[0]).toMatchObject({ name: 'Tank ONO', location: 'Teplice', source: 'tank_ono', isPrimary: true, natural95: 37.9, diesel: 42.9 });
+  expect(all[1]).toMatchObject({ name: 'Makro', label: 'Makro Trmice', source: 'makro', isPrimary: false, natural95: 37.5 });
 });
 
-test('collapses multiple EuroOil locations to the cheapest (Natural95, diesel tie-break)', async () => {
-  tankOno.fetchPrices.mockResolvedValue(null);
-  mbenzin.fetchStations.mockResolvedValue([
-    { id: '17008', name: 'EuroOil', natural95: 41.9, diesel: 42.5 },
-    { id: '16871', name: 'EuroOil', natural95: 41.5, diesel: 41.9 }, // cheapest N95
-    { id: '17009', name: 'EuroOil', natural95: 41.9, diesel: 39.2 },
-  ]);
-  const all = await scrapeAll();
-  const eurooil = all.filter((s) => s.slug === 'eurooil');
-  expect(eurooil).toHaveLength(1);
-  expect(eurooil[0]).toMatchObject({ slug: 'eurooil', name: 'EuroOil', natural95: 41.5, diesel: 41.9 });
+test('a failing station is skipped, the other is kept', async () => {
+  tankOno.fetchPrices.mockRejectedValue(new Error('network'));
+  makro.fetchPrices.mockResolvedValue({ natural95: 37.5, diesel: 42.5, source: 'mbenzin.cz' });
+  const errs = [];
+  const all = await scrapeAll({ log: () => {}, logError: (m) => errs.push(m) });
+  expect(all.map((s) => s.slug)).toEqual(['makro']);
+  expect(errs.join('\n')).toMatch(/tank-ono: network/);
 });
 
-test('skips a scraper that fails, keeps the other', async () => {
+test('returns [] when both fail', async () => {
   tankOno.fetchPrices.mockResolvedValue(null);
-  mbenzin.fetchStations.mockRejectedValue(new Error('network'));
-  const all = await scrapeAll();
-  expect(all).toEqual([]);
+  makro.fetchPrices.mockResolvedValue(null);
+  expect(await scrapeAll(quiet)).toEqual([]);
 });

@@ -29,3 +29,13 @@ describe('joinFuels', () => {
     expect(vs).toMatchObject({ name: 'VS Petrol', natural95: 39.5, diesel: 42.5 });
   });
 });
+
+describe('isGatePage', () => {
+  const { isGatePage } = require('../../src/scrapers/mbenzin');
+  test('detects the JS "Ověřuji prohlížeč" gate', () => {
+    expect(isGatePage(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'mbenzin-gate.html'), 'utf8'))).toBe(true);
+  });
+  test('a real listing is not a gate', () => {
+    expect(isGatePage(n95Html)).toBe(false);
+  });
+});

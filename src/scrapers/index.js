@@ -1,57 +1,48 @@
 const tankOno = require('./tankOno');
-const mbenzin = require('./mbenzin');
+const makro = require('./makro');
+const { stationBySlug } = require('../stations');
 
-// Only these mbenzin brands are tracked, each collapsed to a single stable slug.
-// EuroOil has several locations in town — we keep the cheapest one (by Natural95,
-// diesel as tie-break), so the leaderboard shows one "cheapest EuroOil" line.
-const MBENZIN_BRANDS = { EuroOil: 'eurooil', Makro: 'makro' };
+function fmt(v) { return v.toFixed(2).replace('.', ','); }
 
-function cheaper(a, b) {
-  if (!a) return b;
-  if (b.natural95 !== a.natural95) return b.natural95 < a.natural95 ? b : a;
-  return b.diesel < a.diesel ? b : a;
+function entry(slug, prices) {
+  const st = stationBySlug(slug);
+  return {
+    slug: st.slug, name: st.name, location: st.location, label: st.label,
+    source: st.source, isPrimary: st.isPrimary, sortOrder: st.sortOrder,
+    natural95: prices.natural95, diesel: prices.diesel,
+  };
 }
 
-// Keep only allow-listed brands, collapsing multiple locations of a brand to the
-// cheapest, and emitting one entry per brand under a stable slug.
-function pickMbenzinStations(stations) {
-  const byBrand = new Map();
-  for (const s of stations) {
-    const slug = MBENZIN_BRANDS[s.name];
-    if (!slug) continue;
-    byBrand.set(slug, cheaper(byBrand.get(slug), { slug, name: s.name, natural95: s.natural95, diesel: s.diesel }));
-  }
-  return [...byBrand.values()];
-}
-
-async function scrapeAll() {
+// Scrapes the two tracked stations. A failing station is logged and skipped;
+// the other one still gets saved.
+async function scrapeAll({ log = console.log, logError = console.error } = {}) {
   const results = [];
 
   try {
     const ono = await tankOno.fetchPrices();
     if (ono) {
-      results.push({
-        slug: 'tank-ono', name: 'Tank ONO', source: 'tank_ono',
-        isPrimary: true, natural95: ono.natural95, diesel: ono.diesel,
-      });
+      results.push(entry('tank-ono', ono));
+      log('  ✓ tank-ono (' + ono.station + '): N95 ' + fmt(ono.natural95) + ' · Nafta ' + fmt(ono.diesel));
+    } else {
+      logError('  ✗ tank-ono: Teplice row not parsed (see above)');
     }
   } catch (err) {
-    console.error('tankOno scraper failed:', err.message);
+    logError('  ✗ tank-ono: ' + (err.response ? 'HTTP ' + err.response.status : err.message));
   }
 
   try {
-    const stations = await mbenzin.fetchStations();
-    for (const s of pickMbenzinStations(stations)) {
-      results.push({
-        slug: s.slug, name: s.name, source: 'mbenzin',
-        isPrimary: false, natural95: s.natural95, diesel: s.diesel,
-      });
+    const mk = await makro.fetchPrices({ log: logError });
+    if (mk) {
+      results.push(entry('makro', mk));
+      log('  ✓ makro (' + mk.source + '): N95 ' + fmt(mk.natural95) + ' · Nafta ' + fmt(mk.diesel));
+    } else {
+      logError('  ✗ makro: no data this cycle');
     }
   } catch (err) {
-    console.error('mbenzin scraper failed:', err.message);
+    logError('  ✗ makro: ' + err.message);
   }
 
   return results;
 }
 
-module.exports = { scrapeAll, pickMbenzinStations };
+module.exports = { scrapeAll };
