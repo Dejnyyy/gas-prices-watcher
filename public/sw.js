@@ -1,6 +1,6 @@
 /* Service worker: offline shell + Web Push. Bump VERSION on every frontend deploy. */
-const VERSION = 'hlidac-v3';
-const SHELL = ['/', '/style.css?v=3', '/app.js?v=3', '/manifest.webmanifest', '/icons/icon-192.png'];
+const VERSION = 'hlidac-v4';
+const SHELL = ['/', '/style.css?v=4', '/app.js?v=4', '/manifest.webmanifest', '/icons/icon-192.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).catch(() => {}));
@@ -15,22 +15,33 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Network first for same-origin GETs (fresh prices), cache as offline fallback.
-// API responses are never cached.
+// Network first for the app shell only (fresh prices), cache as offline fallback.
+// Only the bare "/" page and the versioned assets are ever cached — never a URL
+// with a query (tokens!), never manage/unsubscribe pages, never /api/, and never
+// a response marked no-store.
+function cacheable(req, url, res) {
+  if (!res.ok) return false;
+  if (/no-store/i.test(res.headers.get('Cache-Control') || '')) return false;
+  if (req.mode === 'navigate') return url.pathname === '/' && !url.search;
+  return SHELL.includes(url.pathname + url.search);
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+  const isShellNav = req.mode === 'navigate' && url.pathname === '/' && !url.search;
+  if (req.mode === 'navigate' && !isShellNav) return; // manage/unsubscribe etc.: straight to network
   event.respondWith(
     fetch(req)
       .then((res) => {
-        if (res.ok && (req.mode === 'navigate' || SHELL.includes(url.pathname + url.search))) {
+        if (cacheable(req, url, res)) {
           const copy = res.clone();
-          caches.open(VERSION).then((c) => c.put(req.mode === 'navigate' ? '/' : req, copy));
+          caches.open(VERSION).then((c) => c.put(req, copy));
         }
         return res;
       })
-      .catch(() => caches.match(req.mode === 'navigate' ? '/' : req))
+      .catch(() => caches.match(req))
   );
 });
 

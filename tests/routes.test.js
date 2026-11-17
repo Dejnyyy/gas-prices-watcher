@@ -58,3 +58,21 @@ test('GET with token only confirms; POST with token unsubscribes', async () => {
   expect(p.status).toBe(200);
   expect(db.removeSubscriberByToken).toHaveBeenCalledWith(token);
 });
+
+test('token-bearing pages are no-store', async () => {
+  const token = 'c'.repeat(32);
+  const u = await fetch(base + '/unsubscribe?token=' + token);
+  expect(u.headers.get('cache-control')).toBe('no-store');
+  const m = await fetch(base + '/manage.html?token=' + token);
+  expect(m.headers.get('cache-control')).toBe('no-store');
+  db.getSubscriberByToken.mockResolvedValue(null);
+  const a = await fetch(base + '/api/subscription?token=' + token);
+  expect(a.headers.get('cache-control')).toBe('no-store');
+});
+
+test('service worker never caches non-root navigations or tokenised URLs', () => {
+  const sw = require('fs').readFileSync(require('path').join(__dirname, '..', 'public', 'sw.js'), 'utf8');
+  expect(sw).toMatch(/url\.pathname === '\/' && !url\.search/);
+  expect(sw).toMatch(/no-store/);
+  expect(sw).not.toMatch(/req\.mode === 'navigate' \? '\/' : req/);
+});

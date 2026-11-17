@@ -17,9 +17,18 @@ app.use(express.urlencoded({ extended: false, limit: '4kb' }));
 app.use(express.static(path.join(__dirname, '..', 'public'), {
   setHeaders(res, file) {
     // HTML + service worker must revalidate so new deploys reach clients.
-    if (/\.(html|webmanifest)$|sw\.js$/.test(file)) res.setHeader('Cache-Control', 'no-cache');
+    if (/manage\.html$/.test(file)) res.setHeader('Cache-Control', 'no-store');
+    else if (/\.(html|webmanifest)$|sw\.js$/.test(file)) res.setHeader('Cache-Control', 'no-cache');
   },
 }));
+
+// Token-bearing pages and endpoints must never be stored by browsers, proxies or the SW.
+function noStore(req, res, next) {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  next();
+}
+app.use(['/unsubscribe', '/api/subscription', '/api/unsubscribe', '/api/push'], noStore);
 
 // Minimal in-memory rate limiter for the public write endpoints.
 const rateBuckets = new Map();
