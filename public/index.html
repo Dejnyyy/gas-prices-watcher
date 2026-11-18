@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Dejnyho Hlídač — ceny benzínu a nafty na Tank ONO Teplice</title>
-  <meta name="description" content="Aktuální ceny Natural 95 a nafty na Tank ONO Teplice, kontrola každých 5 minut, graf vývoje a upozornění e-mailem nebo push notifikací při každé změně." />
+  <title>Dejnyho Hlídač — ceny benzínu a nafty na Tank ONO</title>
+  <meta name="description" content="Aktuální ceny Natural 95 a nafty na Tank ONO, kontrola každých 5 minut, graf vývoje a upozornění e-mailem nebo push notifikací při každé změně." />
   <link rel="canonical" href="https://beno.dejny.eu/" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="cs_CZ" />
   <meta property="og:site_name" content="Dejnyho Hlídač" />
   <meta property="og:url" content="https://beno.dejny.eu/" />
-  <meta property="og:title" content="Dejnyho Hlídač — ceny na Tank ONO Teplice" />
-  <meta property="og:description" content="Kolik teď stojí Natural 95 a nafta na Tank ONO Teplice. Ceny každých 5 minut, graf a upozornění na každou změnu." />
+  <meta property="og:title" content="Dejnyho Hlídač — ceny na Tank ONO" />
+  <meta property="og:description" content="Kolik teď stojí Natural 95 a nafta na Tank ONO. Ceny každých 5 minut, graf a upozornění na každou změnu." />
   <meta property="og:image" content="https://beno.dejny.eu/icons/icon-512.png" />
   <meta property="og:image:width" content="512" />
   <meta property="og:image:height" content="512" />
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Dejnyho Hlídač — ceny na Tank ONO Teplice" />
-  <meta name="twitter:description" content="Kolik teď stojí Natural 95 a nafta na Tank ONO Teplice. Ceny každých 5 minut, graf a upozornění na každou změnu." />
+  <meta name="twitter:title" content="Dejnyho Hlídač — ceny na Tank ONO" />
+  <meta name="twitter:description" content="Kolik teď stojí Natural 95 a nafta na Tank ONO. Ceny každých 5 minut, graf a upozornění na každou změnu." />
   <meta name="twitter:image" content="https://beno.dejny.eu/icons/icon-512.png" />
   <script type="application/ld+json">
   {
@@ -25,7 +25,7 @@
     "@type": "WebSite",
     "name": "Dejnyho Hlídač",
     "url": "https://beno.dejny.eu/",
-    "description": "Hlídač cen Natural 95 a nafty na Tank ONO Teplice.",
+    "description": "Hlídač cen Natural 95 a nafty na Tank ONO.",
     "inLanguage": "cs",
     "publisher": {
       "@type": "Person", "name": "Daniel Slabý", "url": "https://dejny.eu",
@@ -53,9 +53,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500;62..125,800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=8" />
+  <link rel="stylesheet" href="style.css?v=9" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous" defer></script>
-  <script src="app.js?v=8" defer></script>
+  <script src="app.js?v=9" defer></script>
 </head>
 <body>
 
@@ -72,13 +72,12 @@
 
   <main class="wrap page">
 
-    <h1 class="sr-only">Ceny Natural 95 a nafty na Tank ONO Teplice</h1>
+    <h1 class="sr-only">Ceny Natural 95 a nafty na Tank ONO</h1>
 
     <section class="board" aria-label="Aktuální ceny">
       <article class="station" data-station="tank-ono" id="totem-tank-ono">
         <header class="station-head">
           <h2 class="station-name">Tank ONO</h2>
-          <p class="station-loc">Teplice</p>
         </header>
         <div class="rows">
           <div class="row"><span class="row-fuel">Natural 95</span><span class="row-price is-empty">—</span><span class="row-move">&nbsp;</span></div>
@@ -104,7 +103,7 @@
         </div>
       </div>
       <div class="chart-wrap">
-        <canvas id="priceChart" role="img" aria-label="Graf vývoje ceny paliva na Tank ONO Teplice"></canvas>
+        <canvas id="priceChart" role="img" aria-label="Graf vývoje ceny paliva na Tank ONO"></canvas>
       </div>
     </section>
 
@@ -127,7 +126,7 @@
         <div class="section-bar">
           <h2 id="alerts-title" class="section-title">Upozornění</h2>
         </div>
-        <p class="lead">E-mail nebo notifikace v telefonu při každé změně ceny na Tank ONO Teplice.</p>
+        <p class="lead">E-mail nebo notifikace v telefonu při každé změně ceny na Tank ONO.</p>
 
         <fieldset class="choice">
           <legend>Palivo</legend>
@@ -160,7 +159,7 @@
           <h2 id="about-title" class="section-title">Jak to funguje</h2>
         </div>
         <p>
-          Každých pět minut se načte ceník Tank ONO a vezme se z něj řádek ČS Teplice.
+          Každých pět minut se načte ceník Tank ONO. Ceny jsou na všech stanicích ONO stejné.
           Každá změna Natural 95 a nafty se uloží do historie.
         </p>
         <p>

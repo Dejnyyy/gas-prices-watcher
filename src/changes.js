@@ -67,8 +67,8 @@ function groupByStation(items) {
 
 /**
  * The headline says what changed and where, nothing else:
- *   1 change:            "Tank ONO Teplice: Natural 95 ↓ 37,90 Kč (−0,60)"
- *   1 station, 2 fuels:  "Natural 95 ↓ 37,90 (−0,60) · Nafta ↑ 39,90 (+0,30) — Tank ONO Teplice"
+ *   1 change:            "Tank ONO: Natural 95 ↓ 37,90 Kč (−0,60)"
+ *   1 station, 2 fuels:  "Natural 95 ↓ 37,90 (−0,60) · Nafta ↑ 39,90 (+0,30) — Tank ONO"
  *   several stations:    "ONO: N95 37,90 ↓0,60 · X: Nafta 38,50 ↑0,20" (unused while only ONO is tracked)
  */
 function buildHeadline(items) {

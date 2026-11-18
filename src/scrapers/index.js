@@ -12,7 +12,7 @@ function entry(slug, prices) {
   };
 }
 
-// Scrapes the tracked station (Tank ONO Teplice). A failure is logged and
+// Scrapes the tracked station (Tank ONO). A failure is logged and
 // yields [] for this cycle.
 async function scrapeAll({ log = console.log, logError = console.error } = {}) {
   const results = [];

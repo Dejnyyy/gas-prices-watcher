@@ -5,7 +5,7 @@
   const TZ = 'Europe/Prague';
   const STALE_MIN = 20;
   const SLUG = 'tank-ono';
-  const LABEL = 'Tank ONO Teplice';
+  const LABEL = 'Tank ONO';
   const FUELS = [
     { key: 'natural95', label: 'Natural 95' },
     { key: 'diesel', label: 'Nafta' },

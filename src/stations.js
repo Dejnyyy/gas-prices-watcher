@@ -1,5 +1,5 @@
 // Single source of truth for the station and fuels the watcher tracks.
-// Only Tank ONO Teplice is tracked; any other station (e.g. the former Makro)
+// Only Tank ONO is tracked; any other station (e.g. the former Makro)
 // stays in the DB for history but is marked inactive.
 
 const STATIONS = [
@@ -7,7 +7,7 @@ const STATIONS = [
     slug: 'tank-ono',
     name: 'Tank ONO',
     location: 'Teplice',
-    label: 'Tank ONO Teplice', // used in subjects / push titles
+    label: 'Tank ONO', // used in subjects / push titles
     short: 'ONO',             // used in compact multi-station subjects
     source: 'tank_ono',
     isPrimary: true,

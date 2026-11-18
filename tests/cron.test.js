@@ -16,7 +16,7 @@ const notifier = require('../src/notifier');
 const push = require('../src/push');
 const { runCheck } = require('../src/cron');
 
-const ONO = { slug: 'tank-ono', name: 'Tank ONO', label: 'Tank ONO Teplice', source: 'tank_ono', isPrimary: true };
+const ONO = { slug: 'tank-ono', name: 'Tank ONO', label: 'Tank ONO', source: 'tank_ono', isPrimary: true };
 
 beforeEach(() => {
   jest.clearAllMocks();

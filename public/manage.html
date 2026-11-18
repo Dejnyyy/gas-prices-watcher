@@ -57,7 +57,7 @@
       if (!r.ok) { $('#m-lead').textContent = 'Tenhle odkaz nepatří k žádnému odběru. Možná už je odhlášený.'; return; }
       const s = await r.json();
       $('#m-lead').textContent = '';
-      $('#m-lead').append('Odběr změn cen na Tank ONO Teplice pro ', Object.assign(document.createElement('span'), { className: 'manage-email', textContent: s.email }), '.');
+      $('#m-lead').append('Odběr změn cen na Tank ONO pro ', Object.assign(document.createElement('span'), { className: 'manage-email', textContent: s.email }), '.');
       document.querySelectorAll('input[name="fuels"]').forEach((i) => { i.checked = s.fuels.includes(i.value); });
       $('#m-form').hidden = false;
     }).catch(() => { $('#m-lead').textContent = 'Odběr se nepodařilo načíst. Zkus stránku obnovit.'; });

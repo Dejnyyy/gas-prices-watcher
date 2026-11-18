@@ -9,7 +9,7 @@ const token = 'a'.repeat(32);
 const ONO = ['tank-ono'];
 
 test('buildSubject is the change itself', () => {
-  expect(buildSubject(changes)).toBe('Tank ONO Teplice: Natural 95 ↓ 37,90 Kč (−0,60)');
+  expect(buildSubject(changes)).toBe('Tank ONO: Natural 95 ↓ 37,90 Kč (−0,60)');
 });
 
 test('returns null when nothing matches the fuel prefs', () => {
@@ -18,8 +18,8 @@ test('returns null when nothing matches the fuel prefs', () => {
 
 test('html starts with the change and carries manage + unsubscribe links, no comparison line', () => {
   const m = buildMessage(changes, { email: 'a@b.cz', token, stations: ONO, fuels: ['natural95', 'diesel'] }, { baseUrl: base, latest });
-  expect(m.subject).toBe('Tank ONO Teplice: Natural 95 ↓ 37,90 Kč (−0,60)');
-  const firstRow = m.html.indexOf('Tank ONO Teplice');
+  expect(m.subject).toBe('Tank ONO: Natural 95 ↓ 37,90 Kč (−0,60)');
+  const firstRow = m.html.indexOf('Tank ONO');
   expect(firstRow).toBeGreaterThan(0);
   expect(firstRow).toBeLessThan(m.html.indexOf('Aktuální ceny'));
   expect(m.html).toContain('−0,60');
@@ -28,7 +28,7 @@ test('html starts with the change and carries manage + unsubscribe links, no com
   expect(m.html).toContain(base + '/manage.html?token=' + token);
   expect(m.html).toContain(base + '/unsubscribe?token=' + token);
   expect(m.headers['List-Unsubscribe']).toBe('<' + base + '/unsubscribe?token=' + token + '>');
-  expect(m.text).toMatch(/Tank ONO Teplice · Natural 95: 38,50 → 37,90 Kč \(−0,60\)/);
+  expect(m.text).toMatch(/Tank ONO · Natural 95: 38,50 → 37,90 Kč \(−0,60\)/);
   expect(m.html + m.text).not.toMatch(/Makr|levnější/);
 });
 

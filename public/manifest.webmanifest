@@ -1,7 +1,7 @@
 {
   "name": "Dejnyho Hlídač",
   "short_name": "Hlídač",
-  "description": "Ceny Natural 95 a nafty na Tank ONO Teplice",
+  "description": "Ceny Natural 95 a nafty na Tank ONO",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

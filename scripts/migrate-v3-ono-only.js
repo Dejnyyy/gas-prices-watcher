@@ -1,4 +1,4 @@
-// v3: the watcher tracks only Tank ONO Teplice. Idempotent — safe to run repeatedly.
+// v3: the watcher tracks only Tank ONO. Idempotent — safe to run repeatedly.
 //
 //   node scripts/migrate-v3-ono-only.js
 //

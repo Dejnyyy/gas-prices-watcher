@@ -1,4 +1,4 @@
-// v2: two tracked stations (Tank ONO Teplice + Makro Trmice) and per-subscriber
+// v2: two tracked stations (Tank ONO + Makro Trmice) and per-subscriber
 // station/fuel preferences. Idempotent — safe to run repeatedly.
 //
 //   node scripts/migrate-v2-prefs.js

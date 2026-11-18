@@ -6,7 +6,7 @@ Source: the `tank-ono.cz` ceník, row matched by name (`TANK_ONO_STATION`, defau
 
 Every change is stored; subscribers get one e-mail / push per run containing only the
 fuels they chose (Natural 95, nafta or both). The headline (subject, push title) is the
-change itself, e.g. `Tank ONO Teplice: Natural 95 ↓ 37,90 Kč (−0,60)`.
+change itself, e.g. `Tank ONO: Natural 95 ↓ 37,90 Kč (−0,60)`.
 
 Makro Trmice was tracked until Nov 2026; it is marked inactive in the DB (history kept)
 by `node scripts/migrate-v3-ono-only.js`, which also switches every subscriber to Tank ONO.
