@@ -1,11 +1,9 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const mbenzin = require('./mbenzin');
 
 // Makro Ústí nad Labem, Žižkova 3363/78 (on the Trmice boundary) — the only
 // Makro in the area.
 const STORE_URL = 'https://www.makro.cz/prodejny/usti-nad-labem';
-const MBENZIN_ID = process.env.MBENZIN_MAKRO_ID || '17681';
 const UA = 'Mozilla/5.0 (compatible; DejnyHlidac/2.0; +https://beno.dejny.eu)';
 // A source that refuses us (403 / bot gate) is not retried for this long.
 const BLOCKED_COOLDOWN_MS = 60 * 60 * 1000;
@@ -35,16 +33,6 @@ function parseStorePage(html) {
   return out.natural95 != null && out.diesel != null ? out : null;
 }
 
-/** Pick the Trmice/Žižkova Makro out of mbenzin's joined Ústí listing. */
-function pickFromMbenzin(stations) {
-  const byId = stations.find((s) => s.id === MBENZIN_ID);
-  if (byId) return { natural95: byId.natural95, diesel: byId.diesel };
-  const makros = stations.filter((s) => /^makro$/i.test(s.name));
-  const zizkova = makros.find((s) => /žižkova/i.test(s.street || ''));
-  const pick = zizkova || (makros.length === 1 ? makros[0] : null);
-  return pick ? { natural95: pick.natural95, diesel: pick.diesel } : null;
-}
-
 const blockedUntil = new Map();
 
 const SOURCES = [
@@ -57,14 +45,6 @@ const SOURCES = [
       });
       const p = parseStorePage(res.data);
       if (!p) throw new Error('fuel price block not found on store page');
-      return p;
-    },
-  },
-  {
-    id: 'mbenzin.cz',
-    async fetch() {
-      const p = pickFromMbenzin(await mbenzin.fetchStations());
-      if (!p) throw new Error('Makro #' + MBENZIN_ID + ' not in listing');
       return p;
     },
   },
@@ -102,4 +82,4 @@ async function fetchPrices({ log = console.log, now = Date.now(), sources = SOUR
 
 function _resetCooldowns() { blockedUntil.clear(); }
 
-module.exports = { fetchPrices, parseStorePage, pickFromMbenzin, SOURCES, STORE_URL, MBENZIN_ID, _resetCooldowns };
+module.exports = { fetchPrices, parseStorePage, SOURCES, STORE_URL, _resetCooldowns };

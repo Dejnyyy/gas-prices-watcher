@@ -192,6 +192,8 @@
     const list = [];
     for (const [slug, rows] of Object.entries(history || {})) {
       for (let i = 1; i < rows.length; i++) {
+        // After an observation gap (scraper down) the moment of change is unknown.
+        if (rows[i].gap) continue;
         for (const f of FUELS) {
           const from = Number(rows[i - 1][f.key]);
           const to = Number(rows[i][f.key]);
@@ -239,7 +241,14 @@
 
   function seriesFor(slug) {
     const rows = (history && history[slug]) || [];
-    return rows.map((r) => ({ x: new Date(r.checked_at).getTime(), y: Number(r[view.fuel]) }));
+    const pts = [];
+    rows.forEach((r, i) => {
+      const x = new Date(r.checked_at).getTime();
+      // Break the line across an observation gap instead of dating the change.
+      if (r.gap && i > 0) pts.push({ x: new Date(rows[i - 1].checked_at).getTime() + 1, y: null });
+      pts.push({ x, y: Number(r[view.fuel]) });
+    });
+    return pts;
   }
 
   function renderChart() {
@@ -261,6 +270,7 @@
         backgroundColor: color,
         fill: false,
         stepped: 'before',
+        spanGaps: false,
         borderWidth: 2.5,
         pointRadius: 0,
         pointHoverRadius: 5,
@@ -275,7 +285,7 @@
     const allY = ds.flatMap((d) => {
       const inside = d.data.filter((p) => p.x >= min);
       const before = d.data.filter((p) => p.x < min).pop();
-      return (before ? [before, ...inside] : inside).map((p) => p.y);
+      return (before ? [before, ...inside] : inside).map((p) => p.y).filter((y) => y != null);
     });
     const yMin = allY.length ? Math.floor(Math.min(...allY) - 0.3) : undefined;
     const yMax = allY.length ? Math.ceil(Math.max(...allY) + 0.3) : undefined;

@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const db = require('./db');
-const { computeLastMove, computeLastMoveByFuel } = require('./leaderboard');
+const { computeLastMove, computeLastMoveByFuel, markGaps } = require('./leaderboard');
 const { startCron } = require('./cron');
 const push = require('./push');
 const { STATIONS, stationBySlug, normalizePrefs, ALL_PREFS } = require('./stations');
@@ -94,7 +94,7 @@ app.get('/api/history', async (req, res) => {
       const out = {};
       for (const cfg of STATIONS) {
         const st = await db.getStationBySlug(cfg.slug);
-        out[cfg.slug] = st ? await db.getHistoryForStation(st.id, days) : [];
+        out[cfg.slug] = st ? markGaps(await db.getHistoryForStation(st.id, days)) : [];
       }
       res.set('Cache-Control', 'no-store');
       return res.json(out);
@@ -102,7 +102,7 @@ app.get('/api/history', async (req, res) => {
     const slug = stationBySlug(req.query.station) ? req.query.station : 'tank-ono';
     const station = await db.getStationBySlug(slug);
     if (!station) return res.json([]);
-    res.json(await db.getHistoryForStation(station.id, days));
+    res.json(markGaps(await db.getHistoryForStation(station.id, days)));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DB error' });

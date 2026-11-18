@@ -51,5 +51,7 @@ test('owner gets everything and is not duplicated if subscribed', () => {
 
 test('cheaperNote names the cheaper station per fuel', () => {
   expect(cheaperNote(latest, { stations: ['tank-ono', 'makro'], fuels: ['natural95', 'diesel'] }))
-    .toBe('Natural 95 stojí stejně, Nafta je levnější v Makru o 0,40 Kč.');
+    .toBe('Natural 95 stojí stejně, nafta je levnější v Makru o 0,40 Kč.');
+  expect(cheaperNote(latest, { stations: ['tank-ono', 'makro'], fuels: ['diesel'] }))
+    .toBe('Nafta je levnější v Makru o 0,40 Kč.');
 });

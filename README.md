@@ -5,7 +5,7 @@ Watches Natural 95 and diesel prices at exactly two stations, every 5 minutes:
 | Station | Source |
 | --- | --- |
 | **Tank ONO – ČS Teplice** | `tank-ono.cz` ceník, row matched by name (`TANK_ONO_STATION`, default `ČS Teplice`). Missing row ⇒ logged, no data saved (no silent fallback to another station). |
-| **Makro Ústí nad Labem (Žižkova, Trmice)** | 1) official store page `makro.cz/prodejny/usti-nad-labem` (“Ceny paliv” block), 2) mbenzin.cz listing, station `#17681` (`MBENZIN_MAKRO_ID`). A source that answers 403 / bot gate is skipped for an hour. |
+| **Makro Ústí nad Labem (Žižkova, Trmice)** | official store page `makro.cz/prodejny/usti-nad-labem` (“Ceny paliv” block). A source that answers 403 / bot gate is skipped for an hour. |
 
 Every change is stored; subscribers get one e-mail / push per run containing only the
 stations and fuels they chose. The headline (subject, push title) is the change itself,
@@ -13,18 +13,14 @@ e.g. `Tank ONO Teplice: Natural 95 ↓ 37,90 Kč (−0,60)`.
 
 ### Makro source status (Nov 2026)
 
-Both Makro sources currently refuse non-browser clients:
+`makro.cz` sits behind Akamai bot protection (HTTP 403 for any script, from the VPS
+too). Until another source is added, Makro shows its last verified price marked as
+stale. A price read off the official site can be recorded by hand (no notification is
+sent): `node scripts/set-price.js makro 37.90 42.90`.
 
-- `makro.cz` sits behind Akamai bot protection (HTTP 403 for any script, from the VPS too).
-- `mbenzin.cz` serves a JavaScript “Ověřuji prohlížeč…” gate and asks script users to
-  request a free access key at <https://www.mbenzin.cz/klic> (condition: show the link
-  “Ceny: mbenzin.cz”, already in the page footer).
-
-Once mbenzin issues a key, put it into `.env` the way they specify — either
-`MBENZIN_COOKIE="name=value"` (sent as Cookie header) or `MBENZIN_QUERY="klic=…"`
-(appended to the URL) — and rebuild. Until then Makro shows its last verified price
-marked as stale. A price read off the official site can be recorded by hand
-(no notification is sent): `node scripts/set-price.js makro 37.90 42.90`.
+Two consecutive checks of a station more than 48 h apart are an observation gap: a
+price difference across it has no known date, so it is not shown as the last change,
+not listed in the change table, not notified, and the chart line is broken there.
 
 ## Setup
 

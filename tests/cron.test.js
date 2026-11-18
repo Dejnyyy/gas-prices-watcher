@@ -76,3 +76,21 @@ test('first-ever reading for a station saves but does not notify', async () => {
   expect(notifier.sendNotification).not.toHaveBeenCalled();
   expect(db.saveCheck).toHaveBeenCalledWith(2, { natural95: 41.0, diesel: 40.0 }, true);
 });
+
+test('a difference against a check older than 48 h is saved but not notified', async () => {
+  scrapeAll.mockResolvedValue([{ ...MAKRO, natural95: 37.9, diesel: 42.9 }]);
+  const old = new Date(Date.now() - 100 * 24 * 3600 * 1000);
+  db.getLatest2ForStation.mockResolvedValue([{ id: 22, natural95: '38.50', diesel: '40.50', checked_at: old }]);
+  await runCheck();
+  expect(db.saveCheck).toHaveBeenCalledWith(2, { natural95: 37.9, diesel: 42.9 }, true);
+  expect(notifier.sendNotification).not.toHaveBeenCalled();
+  expect(push.sendPriceChangePush).not.toHaveBeenCalled();
+});
+
+test('a difference against a recent check is notified', async () => {
+  scrapeAll.mockResolvedValue([{ ...MAKRO, natural95: 37.9, diesel: 42.9 }]);
+  const recent = new Date(Date.now() - 5 * 60 * 1000);
+  db.getLatest2ForStation.mockResolvedValue([{ id: 22, natural95: '38.50', diesel: '42.90', checked_at: recent }]);
+  await runCheck();
+  expect(notifier.sendNotification).toHaveBeenCalledTimes(1);
+});

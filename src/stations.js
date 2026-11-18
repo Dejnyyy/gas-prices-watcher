@@ -27,8 +27,8 @@ const STATIONS = [
 ];
 
 const FUELS = [
-  { key: 'natural95', label: 'Natural 95', short: 'N95' },
-  { key: 'diesel', label: 'Nafta', short: 'Nafta' },
+  { key: 'natural95', label: 'Natural 95', lower: 'Natural 95', short: 'N95' },
+  { key: 'diesel', label: 'Nafta', lower: 'nafta', short: 'Nafta' },
 ];
 
 const STATION_SLUGS = STATIONS.map((s) => s.slug);

@@ -93,10 +93,12 @@ function cheaperNote(latest, prefs) {
     const va = latest[a.slug][f.key];
     const vb = latest[b.slug][f.key];
     if (va == null || vb == null) return null;
-    if (va === vb) return f.label + ' stojí stejně';
+    if (va === vb) return { f, text: ' stojí stejně' };
     const cheap = va < vb ? a : b;
-    return f.label + ' je levnější v ' + (cheap.slug === 'makro' ? 'Makru' : 'Tank ONO') + ' o ' + price(Math.abs(va - vb)) + ' Kč';
-  }).filter(Boolean);
+    return { f, text: ' je levnější v ' + (cheap.slug === 'makro' ? 'Makru' : 'Tank ONO') + ' o ' + price(Math.abs(va - vb)) + ' Kč' };
+  }).filter(Boolean)
+    // Sentence case: only the first fuel name is capitalised ("…, nafta je levnější …").
+    .map((n, i) => (i === 0 ? n.f.label : n.f.lower || n.f.label) + n.text);
   return notes.length ? notes.join(', ') + '.' : '';
 }
 

@@ -19,7 +19,7 @@ test('returns exactly the two tracked stations with config metadata', async () =
 
 test('a failing station is skipped, the other is kept', async () => {
   tankOno.fetchPrices.mockRejectedValue(new Error('network'));
-  makro.fetchPrices.mockResolvedValue({ natural95: 37.5, diesel: 42.5, source: 'mbenzin.cz' });
+  makro.fetchPrices.mockResolvedValue({ natural95: 37.5, diesel: 42.5, source: 'makro.cz' });
   const errs = [];
   const all = await scrapeAll({ log: () => {}, logError: (m) => errs.push(m) });
   expect(all.map((s) => s.slug)).toEqual(['makro']);

@@ -4,6 +4,7 @@ const db = require('./db');
 const { sendNotification } = require('./notifier');
 const { sendPriceChangePush } = require('./push');
 const { STATIONS } = require('./stations');
+const { isGap } = require('./leaderboard');
 
 let checking = false;
 
@@ -50,7 +51,9 @@ async function _runCheck() {
       latest[s.slug] = { natural95: s.natural95, diesel: s.diesel };
 
       if (priceChanged) {
-        if (last) {
+        // A difference against a check older than the gap threshold (scraper was
+        // down) is not a change we observed now — store it, but don't announce it.
+        if (last && !isGap(last, { checked_at: new Date() })) {
           changes.push({
             slug: s.slug, name: s.name, label: s.label,
             old: { natural95: latN, diesel: latD },
