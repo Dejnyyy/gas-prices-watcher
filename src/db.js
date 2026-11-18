@@ -4,7 +4,11 @@ require('dotenv').config();
 
 const pool = mysql.createPool(process.env.DATABASE_URL);
 
-const DEFAULT_STATIONS = 'tank-ono,makro';
+const { STATION_SLUGS } = require('./stations');
+
+// Everyone follows every tracked station (only Tank ONO); stored station lists
+// from the two-station era are ignored on read.
+const DEFAULT_STATIONS = STATION_SLUGS.join(',');
 const DEFAULT_FUELS = 'natural95,diesel';
 
 function newToken() {
@@ -103,7 +107,7 @@ async function deleteRecord(id) {
 function mapSubscriber(r) {
   return {
     id: r.id, email: r.email, token: r.token,
-    stations: splitList(r.stations, DEFAULT_STATIONS),
+    stations: [...STATION_SLUGS],
     fuels: splitList(r.fuels, DEFAULT_FUELS),
   };
 }
@@ -111,7 +115,7 @@ function mapSubscriber(r) {
 // Returns { created, subscriber }. An existing address keeps its preferences:
 // they can only be changed via the tokenised manage link.
 async function addSubscriber(email, prefs) {
-  const stations = (prefs && prefs.stations ? prefs.stations : splitList(DEFAULT_STATIONS)).join(',');
+  const stations = DEFAULT_STATIONS;
   const fuels = (prefs && prefs.fuels ? prefs.fuels : splitList(DEFAULT_FUELS)).join(',');
   const [res] = await pool.execute(
     'INSERT IGNORE INTO subscribers (email, token, stations, fuels) VALUES (?, ?, ?, ?)',
@@ -135,7 +139,7 @@ async function getSubscriberByToken(token) {
 async function updateSubscriberPrefs(token, prefs) {
   const [res] = await pool.execute(
     'UPDATE subscribers SET stations = ?, fuels = ? WHERE token = ?',
-    [prefs.stations.join(','), prefs.fuels.join(','), token]
+    [DEFAULT_STATIONS, prefs.fuels.join(','), token]
   );
   return res.affectedRows > 0;
 }
@@ -157,7 +161,7 @@ async function getSubscribers() {
 // ── Web Push ──
 
 async function addPushSubscription({ endpoint, p256dh, auth }, prefs) {
-  const stations = (prefs ? prefs.stations : splitList(DEFAULT_STATIONS)).join(',');
+  const stations = DEFAULT_STATIONS;
   const fuels = (prefs ? prefs.fuels : splitList(DEFAULT_FUELS)).join(',');
   await pool.execute(
     `INSERT INTO push_subscriptions (endpoint, p256dh, auth, stations, fuels) VALUES (?, ?, ?, ?, ?)
@@ -170,13 +174,13 @@ async function addPushSubscription({ endpoint, p256dh, auth }, prefs) {
 async function getPushSubscription(endpoint) {
   const [rows] = await pool.execute('SELECT * FROM push_subscriptions WHERE endpoint = ?', [endpoint]);
   const r = rows[0];
-  return r ? { endpoint: r.endpoint, stations: splitList(r.stations, DEFAULT_STATIONS), fuels: splitList(r.fuels, DEFAULT_FUELS) } : null;
+  return r ? { endpoint: r.endpoint, stations: [...STATION_SLUGS], fuels: splitList(r.fuels, DEFAULT_FUELS) } : null;
 }
 
 async function updatePushPrefs(endpoint, prefs) {
   const [res] = await pool.execute(
     'UPDATE push_subscriptions SET stations = ?, fuels = ? WHERE endpoint = ?',
-    [prefs.stations.join(','), prefs.fuels.join(','), endpoint]
+    [DEFAULT_STATIONS, prefs.fuels.join(','), endpoint]
   );
   return res.affectedRows > 0;
 }
@@ -189,7 +193,7 @@ async function getPushSubscriptions() {
   const [rows] = await pool.execute('SELECT endpoint, p256dh, auth, stations, fuels FROM push_subscriptions');
   return rows.map((r) => ({
     endpoint: r.endpoint, p256dh: r.p256dh, auth: r.auth,
-    stations: splitList(r.stations, DEFAULT_STATIONS), fuels: splitList(r.fuels, DEFAULT_FUELS),
+    stations: [...STATION_SLUGS], fuels: splitList(r.fuels, DEFAULT_FUELS),
   }));
 }
 

@@ -14,16 +14,21 @@ test('stationSummary exposes latest prices and per-fuel last moves', () => {
 });
 
 test('stationSummary marks a station without data as unavailable', () => {
-  expect(stationSummary(STATIONS[1], [])).toMatchObject({ slug: 'makro', available: false });
+  expect(stationSummary(STATIONS[0], [])).toMatchObject({ slug: 'tank-ono', available: false });
 });
 
-test('normalizePrefs drops unknown values and rejects empty choices', () => {
-  expect(normalizePrefs({ stations: ['makro', 'evil', 'makro'], fuels: 'diesel' })).toEqual({ stations: ['makro'], fuels: ['diesel'] });
-  expect(normalizePrefs({ stations: [], fuels: ['diesel'] })).toBeNull();
+test('Tank ONO is the only tracked station', () => {
+  expect(STATIONS.map((s) => s.slug)).toEqual(['tank-ono']);
+});
+
+test('normalizePrefs keeps known fuels, always follows Tank ONO, ignores old station choices', () => {
+  expect(normalizePrefs({ fuels: ['diesel', 'evil', 'diesel'] })).toEqual({ stations: ['tank-ono'], fuels: ['diesel'] });
+  expect(normalizePrefs({ stations: ['makro'], fuels: 'natural95' })).toEqual({ stations: ['tank-ono'], fuels: ['natural95'] });
+  expect(normalizePrefs({ fuels: [] })).toBeNull();
   expect(normalizePrefs({ stations: ['tank-ono'] })).toBeNull();
 });
 
 test('prefsFrom defaults to everything only when prefs are absent', () => {
-  expect(prefsFrom({ email: 'x' })).toEqual({ stations: ['tank-ono', 'makro'], fuels: ['natural95', 'diesel'] });
-  expect(prefsFrom({ stations: ['nope'], fuels: ['diesel'] })).toBeNull();
+  expect(prefsFrom({ email: 'x' })).toEqual({ stations: ['tank-ono'], fuels: ['natural95', 'diesel'] });
+  expect(prefsFrom({ fuels: ['nope'] })).toBeNull();
 });

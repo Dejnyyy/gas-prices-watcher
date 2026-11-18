@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500;62..125,800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
   <header class="top">
@@ -31,11 +31,6 @@
       <div class="section-bar"><h1 id="m-title" class="section-title">Nastavení upozornění</h1></div>
       <p class="lead" id="m-lead">Načítám odběr…</p>
       <div id="m-form" hidden>
-        <fieldset class="choice">
-          <legend>Stanice</legend>
-          <label class="tog tog-ono"><input type="checkbox" name="stations" value="tank-ono" /><span>Tank ONO Teplice</span></label>
-          <label class="tog tog-makro"><input type="checkbox" name="stations" value="makro" /><span>Makro Trmice</span></label>
-        </fieldset>
         <fieldset class="choice">
           <legend>Palivo</legend>
           <label class="tog"><input type="checkbox" name="fuels" value="natural95" /><span>Natural 95</span></label>
@@ -62,15 +57,14 @@
       if (!r.ok) { $('#m-lead').textContent = 'Tenhle odkaz nepatří k žádnému odběru. Možná už je odhlášený.'; return; }
       const s = await r.json();
       $('#m-lead').textContent = '';
-      $('#m-lead').append('Odběr pro ', Object.assign(document.createElement('span'), { className: 'manage-email', textContent: s.email }), '.');
-      document.querySelectorAll('input[name="stations"]').forEach((i) => { i.checked = s.stations.includes(i.value); });
+      $('#m-lead').append('Odběr změn cen na Tank ONO Teplice pro ', Object.assign(document.createElement('span'), { className: 'manage-email', textContent: s.email }), '.');
       document.querySelectorAll('input[name="fuels"]').forEach((i) => { i.checked = s.fuels.includes(i.value); });
       $('#m-form').hidden = false;
     }).catch(() => { $('#m-lead').textContent = 'Odběr se nepodařilo načíst. Zkus stránku obnovit.'; });
 
     $('#m-save').addEventListener('click', async () => {
-      const body = { token, stations: pick('stations'), fuels: pick('fuels') };
-      if (!body.stations.length || !body.fuels.length) return msg('Vyber aspoň jednu stanici a jedno palivo.', 'err');
+      const body = { token, fuels: pick('fuels') };
+      if (!body.fuels.length) return msg('Vyber aspoň jedno palivo.', 'err');
       const r = await post('/api/subscription', body).catch(() => null);
       msg(r && r.ok ? 'Uloženo.' : 'Uložení se nepovedlo. Zkus to znovu.', r && r.ok ? 'ok' : 'err');
     });

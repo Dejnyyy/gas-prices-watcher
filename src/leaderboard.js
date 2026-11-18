@@ -51,11 +51,17 @@ function computeLastMoveByFuel(rows) {
   return out;
 }
 
-// History rows (ascending) -> same rows, those following an observation gap
-// flagged with `gap: true` (the dashboard breaks the chart line there and
-// leaves the difference out of the change table).
+// History rows (ascending) -> same rows, those whose price differs from the
+// previous row across an observation gap flagged with `gap: true` (the
+// dashboard breaks the chart line there and leaves the difference out of the
+// change table). Long stretches without a difference are normal: unchanged
+// ticks are pruned, so only the last one before a change is kept.
 function markGaps(rows) {
-  return (rows || []).map((r, i) => (i > 0 && isGap(rows[i - 1], r) ? { ...r, gap: true } : r));
+  return (rows || []).map((r, i) => {
+    if (i === 0 || !isGap(rows[i - 1], r)) return r;
+    const moved = FUELS.some((f) => moveOf(f, rows[i - 1], r));
+    return moved ? { ...r, gap: true } : r;
+  });
 }
 
 module.exports = { computeLastMove, computeLastMoveByFuel, markGaps, isGap, GAP_MS };

@@ -1,4 +1,4 @@
-/* Dejnyho Hlídač v6 — white price board, brand-coloured station blocks. */
+/* Dejnyho Hlídač v8 — white price board, one Tank ONO block. */
 
 :root {
   --bg: #ffffff;
@@ -10,12 +10,9 @@
   --ono: #ffd200;
   --on-ono: #0a0a0a;
   --ono-line: #f2b705;      /* chart stroke: brand yellow, a touch deeper so it holds on white */
-  --makro: #0033a0;
-  --on-makro: #ffffff;
-  --makro-line: #0033a0;
   --down: #15803d;
   --up: #b91c1c;
-  --focus: #0033a0;
+  --focus: #0a0a0a;
   --font: 'Archivo', 'Helvetica Neue', Arial, system-ui, sans-serif;
   color-scheme: light;
 }
@@ -28,7 +25,6 @@
   --line: #262626;
   --field: #141414;
   --ono-line: #ffd200;
-  --makro-line: #4d7cff;   /* navy disappears on black; same hue, lifted */
   --down: #4ade80;
   --up: #f87171;
   --focus: #ffd200;
@@ -98,8 +94,7 @@ button, input { font: inherit; color: inherit; }
 .page { padding-top: 24px; padding-bottom: 64px; }
 @media (min-width: 720px) { .page { padding-top: 32px; } }
 
-.board { display: grid; gap: 8px; }
-@media (min-width: 760px) { .board { grid-template-columns: 1fr 1fr; gap: 12px; } }
+.board { display: grid; }
 
 .station {
   --rule: color-mix(in srgb, currentColor 28%, transparent);
@@ -110,7 +105,6 @@ button, input { font: inherit; color: inherit; }
 @media (min-width: 720px) { .station { padding: 28px 32px 22px; } }
 @media (max-width: 719px) { .station-head { padding-bottom: 10px; } .row { padding-top: 10px; } }
 .station[data-station="tank-ono"] { background: var(--ono); color: var(--on-ono); }
-.station[data-station="makro"] { background: var(--makro); color: var(--on-makro); }
 
 .station-head {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
@@ -141,7 +135,11 @@ button, input { font: inherit; color: inherit; }
   padding: 4px 0 6px;
 }
 .row-price small { font-size: .26em; font-stretch: 100%; letter-spacing: 0; margin-left: .3em; font-weight: 500; }
-@media (min-width: 760px) { .row-price { font-size: clamp(88px, 9vw, 128px); } }
+@media (min-width: 760px) {
+  /* Hero: the two fuels side by side. */
+  .station .rows { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; }
+  .row-price { font-size: clamp(96px, 11vw, 160px); }
+}
 .row-price.is-empty { opacity: .35; }
 .row-price.is-fresh { animation: fade-in .35s ease-out; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -152,22 +150,6 @@ button, input { font: inherit; color: inherit; }
   font-size: 14px;
 }
 .station.is-stale .station-foot { opacity: .8; }
-
-.verdict {
-  font-size: 20px; line-height: 1.35;
-  padding: 20px 0 0;
-  max-width: 62ch;
-  min-height: 1.35em;
-}
-@media (min-width: 720px) { .verdict { font-size: 24px; padding-top: 24px; } }
-.verdict .v-sub { display: block; font-size: 15px; color: var(--muted); margin-top: 6px; }
-.key {
-  display: inline-block; width: .62em; height: .62em; margin-right: .32em;
-  vertical-align: baseline; position: relative; top: .02em; border-radius: 1px;
-}
-.key-ono { background: var(--ono); box-shadow: inset 0 0 0 1px color-mix(in srgb, #000 12%, transparent); }
-.key-makro { background: var(--makro); }
-:root[data-theme="dark"] .key-makro { background: var(--makro-line); }
 
 /* ── Sections ── */
 
@@ -191,11 +173,6 @@ button, input { font: inherit; color: inherit; }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 .seg button:not([aria-pressed="true"]):hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
 
-.legend { display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: 15px; margin-bottom: 12px; }
-.legend .key { width: 18px; height: 4px; top: -.2em; border-radius: 0; box-shadow: none; }
-.legend .key-ono { background: var(--ono-line); }
-.legend .key-makro { background: var(--makro-line); }
-
 .chart-wrap { position: relative; height: 300px; }
 @media (min-width: 720px) { .chart-wrap { height: 380px; } }
 
@@ -210,7 +187,7 @@ button, input { font: inherit; color: inherit; }
 .changes th:last-child, .changes td:last-child { padding-right: 0; }
 .changes .num { text-align: right; white-space: nowrap; }
 .changes .when { white-space: nowrap; color: var(--ink-2); }
-.changes .st { white-space: nowrap; font-weight: 800; }
+.changes .fuel { white-space: nowrap; }
 .changes .was { color: var(--muted); }
 .changes .now { font-weight: 800; }
 .changes .delta { font-weight: 800; }
@@ -221,7 +198,7 @@ button, input { font: inherit; color: inherit; }
 
 @media (max-width: 600px) {
   .changes { font-size: 14px; }
-  .changes th:nth-child(4), .changes td:nth-child(4) { display: none; }
+  .changes th:nth-child(3), .changes td:nth-child(3) { display: none; }
   .changes td { padding-right: 8px; }
   .changes .when .t { display: block; color: var(--muted); }
 }
@@ -253,10 +230,6 @@ button, input { font: inherit; color: inherit; }
   background: currentColor;
   box-shadow: inset 0 0 0 2.5px var(--ink);
 }
-.tog-ono input:checked + span { background: var(--ono); color: var(--on-ono); border-color: var(--ono); }
-.tog-ono input:checked + span::before { box-shadow: inset 0 0 0 2.5px var(--ono); }
-.tog-makro input:checked + span { background: var(--makro); color: var(--on-makro); border-color: var(--makro); }
-.tog-makro input:checked + span::before { box-shadow: inset 0 0 0 2.5px var(--makro); }
 .tog input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
 .tog input:not(:checked) + span:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
 

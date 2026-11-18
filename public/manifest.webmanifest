@@ -1,7 +1,7 @@
 {
   "name": "Dejnyho Hlídač",
   "short_name": "Hlídač",
-  "description": "Ceny Natural 95 a nafty: Tank ONO Teplice a Makro Ústí nad Labem (Trmice)",
+  "description": "Ceny Natural 95 a nafty na Tank ONO Teplice",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

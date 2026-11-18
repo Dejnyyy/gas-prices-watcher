@@ -11,10 +11,9 @@ const C = {
   down: '#15803d', up: '#b91c1c',
   ink: '#0a0a0a', muted: '#6e6e6e', line: '#e2e2e2', bg: '#ffffff',
 };
-// Brand fills: Tank ONO yellow with black text, Makro blue with white text.
+// Brand fill: Tank ONO yellow with black text.
 const BRAND = {
   'tank-ono': { bg: '#ffd200', fg: '#0a0a0a', cls: 'b-ono' },
-  makro: { bg: '#0033a0', fg: '#ffffff', cls: 'b-makro' },
 };
 const brandOf = (slug) => BRAND[slug] || { bg: C.ink, fg: '#ffffff', cls: '' };
 const SANS = "Archivo,'Helvetica Neue',Helvetica,Arial,sans-serif";
@@ -84,24 +83,6 @@ function currentTable(latest, prefs) {
   </td></tr>`;
 }
 
-// One closing sentence: where it is cheaper right now (the only "commentary").
-function cheaperNote(latest, prefs) {
-  const st = STATIONS.filter((s) => prefs.stations.includes(s.slug) && latest[s.slug]);
-  if (st.length < 2) return '';
-  const notes = FUELS.filter((f) => prefs.fuels.includes(f.key)).map((f) => {
-    const [a, b] = st;
-    const va = latest[a.slug][f.key];
-    const vb = latest[b.slug][f.key];
-    if (va == null || vb == null) return null;
-    if (va === vb) return { f, text: ' stojí stejně' };
-    const cheap = va < vb ? a : b;
-    return { f, text: ' je levnější v ' + (cheap.slug === 'makro' ? 'Makru' : 'Tank ONO') + ' o ' + price(Math.abs(va - vb)) + ' Kč' };
-  }).filter(Boolean)
-    // Sentence case: only the first fuel name is capitalised ("…, nafta je levnější …").
-    .map((n, i) => (i === 0 ? n.f.label : n.f.lower || n.f.label) + n.text);
-  return notes.length ? notes.join(', ') + '.' : '';
-}
-
 /**
  * items: per-fuel changes already filtered for this recipient.
  * opts: { baseUrl, email, token?, latest, prefs, now? }
@@ -110,7 +91,6 @@ function buildEmailHtml(items, { baseUrl, email, token, latest = {}, prefs = ALL
   const headline = buildHeadline(items);
   const manage = token ? baseUrl + '/manage.html?token=' + token : null;
   const unsub = token ? baseUrl + '/unsubscribe?token=' + token : null;
-  const note = cheaperNote(latest, prefs);
   return `<!DOCTYPE html>
 <html lang="cs"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -118,7 +98,6 @@ function buildEmailHtml(items, { baseUrl, email, token, latest = {}, prefs = ALL
 <title>${escapeHtml(headline)}</title>
 <style>
   .b-ono { background:#ffd200 !important; color:#0a0a0a !important; }
-  .b-makro { background:#0033a0 !important; color:#ffffff !important; }
   @media (prefers-color-scheme: dark) {
     body, .bg { background:#0b0b0b !important; }
     .ink { color:#f2f2f2 !important; }
@@ -146,7 +125,6 @@ function buildEmailHtml(items, { baseUrl, email, token, latest = {}, prefs = ALL
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${items.map(changeRow).join('')}</table>
     </td></tr>
     ${currentTable(latest, prefs)}
-    ${note ? `<tr><td class="ink" style="padding:18px 0 0;font:500 15px/1.5 ${SANS};color:${C.ink}">${escapeHtml(note)}</td></tr>` : ''}
     <tr><td style="padding:24px 0 28px">
       <a class="btn" href="${baseUrl}" style="display:inline-block;background:${C.ink};color:#ffffff;text-decoration:none;font:800 15px ${SANS};padding:12px 20px;border-radius:4px">Graf a historie cen</a>
     </td></tr>
@@ -161,8 +139,7 @@ function buildEmailHtml(items, { baseUrl, email, token, latest = {}, prefs = ALL
 function buildText(items, { baseUrl, token, latest, prefs }) {
   const lines = items.map((i) =>
     i.label + ' · ' + i.fuelLabel + ': ' + price(i.old) + ' → ' + price(i.new) + ' Kč (' + signed(i.delta) + ')');
-  const note = cheaperNote(latest || {}, prefs || ALL_PREFS);
-  return lines.join('\n') + (note ? '\n\n' + note : '') + '\n\n' + baseUrl +
+  return lines.join('\n') + '\n\n' + baseUrl +
     (token ? '\nUpravit odběr: ' + baseUrl + '/manage.html?token=' + token +
       '\nOdhlásit: ' + baseUrl + '/unsubscribe?token=' + token : '');
 }
@@ -222,5 +199,5 @@ async function sendNotification(changes, { latest = {} } = {}) {
 }
 
 module.exports = {
-  sendNotification, buildMessage, buildEmailHtml, buildSubject, recipientsFor, cheaperNote, resend,
+  sendNotification, buildMessage, buildEmailHtml, buildSubject, recipientsFor, resend,
 };

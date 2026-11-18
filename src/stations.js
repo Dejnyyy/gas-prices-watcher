@@ -1,5 +1,6 @@
-// Single source of truth for the stations and fuels the watcher tracks.
-// Anything not listed here is kept in the DB for history but marked inactive.
+// Single source of truth for the station and fuels the watcher tracks.
+// Only Tank ONO Teplice is tracked; any other station (e.g. the former Makro)
+// stays in the DB for history but is marked inactive.
 
 const STATIONS = [
   {
@@ -12,17 +13,6 @@ const STATIONS = [
     isPrimary: true,
     sortOrder: 0,
     url: 'https://www.tank-ono.cz/cz/index.php?page=cenik',
-  },
-  {
-    slug: 'makro',
-    name: 'Makro',
-    location: 'Ústí n. L. – Trmice',
-    label: 'Makro Trmice',
-    short: 'Makro',
-    source: 'makro',
-    isPrimary: false,
-    sortOrder: 1,
-    url: 'https://www.makro.cz/prodejny/usti-nad-labem',
   },
 ];
 
@@ -52,11 +42,12 @@ function normalizeList(input, allowed) {
   return allowed.filter((v) => set.has(v));
 }
 
-function normalizePrefs({ stations, fuels } = {}) {
-  const s = normalizeList(stations, STATION_SLUGS);
+// Subscribers only choose fuels; everyone follows every tracked station
+// (just Tank ONO). A `stations` value from old clients is ignored.
+function normalizePrefs({ fuels } = {}) {
   const f = normalizeList(fuels, FUEL_KEYS);
-  if (!s.length || !f.length) return null;
-  return { stations: s, fuels: f };
+  if (!f.length) return null;
+  return { stations: [...STATION_SLUGS], fuels: f };
 }
 
 const ALL_PREFS = { stations: [...STATION_SLUGS], fuels: [...FUEL_KEYS] };

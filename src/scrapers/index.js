@@ -1,5 +1,4 @@
 const tankOno = require('./tankOno');
-const makro = require('./makro');
 const { stationBySlug } = require('../stations');
 
 function fmt(v) { return v.toFixed(2).replace('.', ','); }
@@ -13,8 +12,8 @@ function entry(slug, prices) {
   };
 }
 
-// Scrapes the two tracked stations. A failing station is logged and skipped;
-// the other one still gets saved.
+// Scrapes the tracked station (Tank ONO Teplice). A failure is logged and
+// yields [] for this cycle.
 async function scrapeAll({ log = console.log, logError = console.error } = {}) {
   const results = [];
 
@@ -30,17 +29,6 @@ async function scrapeAll({ log = console.log, logError = console.error } = {}) {
     logError('  ✗ tank-ono: ' + (err.response ? 'HTTP ' + err.response.status : err.message));
   }
 
-  try {
-    const mk = await makro.fetchPrices({ log: logError });
-    if (mk) {
-      results.push(entry('makro', mk));
-      log('  ✓ makro (' + mk.source + '): N95 ' + fmt(mk.natural95) + ' · Nafta ' + fmt(mk.diesel));
-    } else {
-      logError('  ✗ makro: no data this cycle');
-    }
-  } catch (err) {
-    logError('  ✗ makro: ' + err.message);
-  }
 
   return results;
 }

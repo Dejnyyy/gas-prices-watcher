@@ -6,9 +6,8 @@ const { buildMessage, resend } = require('../src/notifier');
 
 const changes = [
   { slug: 'tank-ono', name: 'Tank ONO', old: { natural95: 38.5, diesel: 42.9 }, new: { natural95: 37.9, diesel: 43.2 } },
-  { slug: 'makro', name: 'Makro', old: { natural95: 37.9, diesel: 42.9 }, new: { natural95: 37.9, diesel: 42.5 } },
 ];
-const latest = { 'tank-ono': { natural95: 37.9, diesel: 43.2 }, makro: { natural95: 37.9, diesel: 42.5 } };
+const latest = { 'tank-ono': { natural95: 37.9, diesel: 43.2 } };
 
 (async () => {
   const to = process.env.NOTIFY_EMAIL;

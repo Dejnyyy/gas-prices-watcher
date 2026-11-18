@@ -4,15 +4,12 @@
 
   const TZ = 'Europe/Prague';
   const STALE_MIN = 20;
-  const COMPARE_MAX_H = 36; // older prices are not used for "cheaper" comparisons
+  const SLUG = 'tank-ono';
+  const LABEL = 'Tank ONO Teplice';
   const FUELS = [
-    { key: 'natural95', label: 'Natural 95', lower: 'Natural 95' },
-    { key: 'diesel', label: 'Nafta', lower: 'nafta' },
+    { key: 'natural95', label: 'Natural 95' },
+    { key: 'diesel', label: 'Nafta' },
   ];
-  const STATIONS = {
-    'tank-ono': { label: 'Tank ONO Teplice', short: 'Tank ONO', at: 'na Tank ONO', gen: 'Tank ONO', key: 'key-ono', line: '--ono-line' },
-    makro: { label: 'Makro Trmice', short: 'Makro', at: 'v Makru', gen: 'Makra', key: 'key-makro', line: '--makro-line' },
-  };
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -40,13 +37,6 @@
   const isToday = (iso) => dayMonth(iso) === dayMonth(new Date().toISOString());
   const when = (iso) => (isToday(iso) ? 'dnes ' : dayMonth(iso) + ' ') + time(iso);
 
-  function stationTag(slug, text) {
-    const s = el('span', 'st');
-    s.appendChild(el('i', 'key ' + STATIONS[slug].key));
-    s.appendChild(document.createTextNode(text));
-    return s;
-  }
-
   // ── Theme (light by default, manual switch) ──
 
   let chart = null;
@@ -68,21 +58,11 @@
   document.querySelectorAll('[data-theme-set]').forEach((b) =>
     b.setAttribute('aria-pressed', String(b.dataset.themeSet === document.documentElement.getAttribute('data-theme'))));
 
-  // ── Latest prices: station blocks, verdict, last check ──
+  // ── Latest prices: station block, last check ──
 
   let latest = null;
 
   function isStale(s) { return !s.available || minutesAgo(s.checked_at) > STALE_MIN; }
-
-  function cheaperOf(fuel) {
-    const a = latest['tank-ono'];
-    const b = latest.makro;
-    if (!a || !b || !a.available || !b.available) return null;
-    if (minutesAgo(a.checked_at) > COMPARE_MAX_H * 60 || minutesAgo(b.checked_at) > COMPARE_MAX_H * 60) return null;
-    const d = Math.round((a[fuel] - b[fuel]) * 100) / 100;
-    if (d === 0) return { same: true };
-    return { slug: d < 0 ? 'tank-ono' : 'makro', diff: Math.abs(d) };
-  }
 
   function renderStation(s) {
     const root = $('#totem-' + s.slug);
@@ -123,43 +103,11 @@
     else foot.textContent = 'Ověřeno ' + relTime(s.checked_at);
   }
 
-  function renderVerdict() {
-    const v = $('#verdict');
-    v.replaceChildren();
-    const t = (s) => v.appendChild(document.createTextNode(s));
-    const parts = FUELS.map((f) => ({ f, c: cheaperOf(f.key) })).filter((p) => p.c);
-
-    if (!parts.length) {
-      t('Ceny nejde porovnat, jedna ze stanic nemá čerstvý údaj.');
-      return;
-    }
-    if (parts.length === 2 && parts.every((p) => p.c.same)) {
-      t('Obě stanice mají stejné ceny.');
-    } else if (parts.length === 2 && !parts[0].c.same && !parts[1].c.same && parts[0].c.slug === parts[1].c.slug) {
-      const slug = parts[0].c.slug;
-      t('Natural 95 i nafta jsou levnější ');
-      v.appendChild(stationTag(slug, STATIONS[slug].at));
-      t(', o ' + fmt(parts[0].c.diff) + ' a ' + fmt(parts[1].c.diff) + ' Kč.');
-    } else {
-      parts.forEach(({ f, c }, i) => {
-        const lead = i === 0 ? f.label : f.lower;
-        if (c.same) t(lead + ' stojí na obou stejně');
-        else {
-          t(lead + ' je levnější ');
-          v.appendChild(stationTag(c.slug, STATIONS[c.slug].at));
-          t(' o ' + fmt(c.diff) + ' Kč');
-        }
-        t(i === parts.length - 1 ? '.' : ', ');
-      });
-    }
-  }
-
   function renderPulse() {
     const p = $('#pulse');
     const txt = $('#pulse-text');
-    const times = Object.values(latest).filter((s) => s.available).map((s) => new Date(s.checked_at).getTime());
-    if (!times.length) { txt.textContent = 'Bez dat'; p.classList.add('is-stale'); return; }
-    const newest = new Date(Math.max(...times)).toISOString();
+    if (!latest || !latest.available) { txt.textContent = 'Bez dat'; p.classList.add('is-stale'); return; }
+    const newest = latest.checked_at;
     const stale = minutesAgo(newest) > STALE_MIN;
     p.classList.toggle('is-stale', stale);
     txt.textContent = (stale ? 'Poslední kontrola ' : 'Kontrola ') + when(newest);
@@ -170,9 +118,8 @@
       const res = await fetch('/api/stations/latest', { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const { stations } = await res.json();
-      latest = Object.fromEntries(stations.map((s) => [s.slug, s]));
-      stations.forEach(renderStation);
-      renderVerdict();
+      latest = stations.find((s) => s.slug === SLUG) || null;
+      if (latest) renderStation(latest);
       renderPulse();
     } catch (err) {
       console.error('loadLatest:', err);
@@ -190,20 +137,19 @@
 
   function buildChanges() {
     const list = [];
-    for (const [slug, rows] of Object.entries(history || {})) {
-      for (let i = 1; i < rows.length; i++) {
-        // After an observation gap (scraper down) the moment of change is unknown.
-        if (rows[i].gap) continue;
-        for (const f of FUELS) {
-          const from = Number(rows[i - 1][f.key]);
-          const to = Number(rows[i][f.key]);
-          if (from !== to) {
-            list.push({ slug, fuel: f, from, to, delta: Math.round((to - from) * 100) / 100, at: rows[i].checked_at });
-          }
+    const rows = history || [];
+    for (let i = 1; i < rows.length; i++) {
+      // After an observation gap (scraper down) the moment of change is unknown.
+      if (rows[i].gap) continue;
+      for (const f of FUELS) {
+        const from = Number(rows[i - 1][f.key]);
+        const to = Number(rows[i][f.key]);
+        if (from !== to) {
+          list.push({ fuel: f, from, to, delta: Math.round((to - from) * 100) / 100, at: rows[i].checked_at });
         }
       }
     }
-    return list.sort((a, b) => new Date(b.at) - new Date(a.at));
+    return list.reverse();
   }
 
   let shown = 12;
@@ -216,7 +162,7 @@
     if (!n) {
       const tr = el('tr');
       const td = el('td', 'empty', 'Za poslední rok se ceny nezměnily.');
-      td.colSpan = 6;
+      td.colSpan = 5;
       tr.appendChild(td);
       body.appendChild(tr);
     }
@@ -226,10 +172,7 @@
       w.appendChild(document.createTextNode(dayMonth(c.at) + ' '));
       w.appendChild(el('span', 't', time(c.at)));
       tr.appendChild(w);
-      const st = el('td');
-      st.appendChild(stationTag(c.slug, STATIONS[c.slug].short));
-      tr.appendChild(st);
-      tr.appendChild(el('td', null, c.fuel.label));
+      tr.appendChild(el('td', 'fuel', c.fuel.label));
       tr.appendChild(el('td', 'num was', fmt(c.from)));
       tr.appendChild(el('td', 'num now', fmt(c.to)));
       const down = c.delta < 0;
@@ -239,8 +182,8 @@
     $('#history-more').hidden = n <= shown;
   }
 
-  function seriesFor(slug) {
-    const rows = (history && history[slug]) || [];
+  function series() {
+    const rows = history || [];
     const pts = [];
     rows.forEach((r, i) => {
       const x = new Date(r.checked_at).getTime();
@@ -261,25 +204,23 @@
     const line = cssVar('--line');
     const font = "'Archivo', 'Helvetica Neue', Arial, sans-serif";
 
-    const ds = Object.keys(STATIONS).map((slug) => {
-      const color = cssVar(STATIONS[slug].line);
-      return {
-        label: STATIONS[slug].label,
-        data: seriesFor(slug),
-        borderColor: color,
-        backgroundColor: color,
-        fill: false,
-        stepped: 'before',
-        spanGaps: false,
-        borderWidth: 2.5,
-        pointRadius: 0,
-        pointHoverRadius: 5,
-        pointHoverBackgroundColor: color,
-        pointHoverBorderColor: bg,
-        pointHoverBorderWidth: 2,
-        pointStyle: 'rect',
-      };
-    });
+    const color = cssVar('--ono-line');
+    const ds = [{
+      label: FUELS.find((f) => f.key === view.fuel).label,
+      data: series(),
+      borderColor: color,
+      backgroundColor: color,
+      fill: false,
+      stepped: 'before',
+      spanGaps: false,
+      borderWidth: 2.5,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+      pointHoverBackgroundColor: color,
+      pointHoverBorderColor: bg,
+      pointHoverBorderWidth: 2,
+      pointStyle: 'rect',
+    }];
 
     // Y range from what is visible: points inside the window + the value entering it.
     const allY = ds.flatMap((d) => {
@@ -353,7 +294,7 @@
 
   async function loadHistory() {
     try {
-      const res = await fetch('/api/history?station=all&days=365', { cache: 'no-store' });
+      const res = await fetch('/api/history?station=' + SLUG + '&days=365', { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       history = await res.json();
       renderChanges();
@@ -377,18 +318,16 @@
   // ── Preferences (shared by e-mail + push) ──
 
   function getPrefs() {
-    const pick = (name) => [...document.querySelectorAll('input[name="' + name + '"]:checked')].map((i) => i.value);
-    return { stations: pick('stations'), fuels: pick('fuels') };
+    return { fuels: [...document.querySelectorAll('input[name="fuels"]:checked')].map((i) => i.value) };
   }
   function setPrefs(p) {
-    document.querySelectorAll('input[name="stations"]').forEach((i) => { i.checked = p.stations.includes(i.value); });
     document.querySelectorAll('input[name="fuels"]').forEach((i) => { i.checked = p.fuels.includes(i.value); });
   }
   function validPrefs() {
     const p = getPrefs();
     const hint = $('#choice-hint');
-    if (!p.stations.length || !p.fuels.length) {
-      hint.textContent = !p.stations.length ? 'Vyber aspoň jednu stanici.' : 'Vyber aspoň jedno palivo.';
+    if (!p.fuels.length) {
+      hint.textContent = 'Vyber aspoň jedno palivo.';
       return null;
     }
     hint.textContent = '';
@@ -464,7 +403,7 @@
       toggle.dataset.on = on ? '1' : '';
       if (!on) save.hidden = true;
     }
-    const same = (a, b) => a && b && a.stations.join() === b.stations.join() && a.fuels.join() === b.fuels.join();
+    const same = (a, b) => a && b && a.fuels.join() === b.fuels.join();
     document.querySelectorAll('.choice input').forEach((i) => i.addEventListener('change', () => {
       validPrefs();
       if (endpoint) save.hidden = same(getPrefs(), savedPrefs);
@@ -487,7 +426,7 @@
       try {
         const st = await (await post('/api/push/status', { endpoint })).json();
         if (st.subscribed) {
-          savedPrefs = { stations: st.stations, fuels: st.fuels };
+          savedPrefs = { fuels: st.fuels };
           setPrefs(savedPrefs);
         } else {
           // Browser still subscribed but server forgot it: re-register with current choice.

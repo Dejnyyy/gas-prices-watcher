@@ -50,7 +50,7 @@ function rateLimit(maxPerMinute) {
 
 function prefsFrom(body) {
   // Missing prefs => everything (old clients); present-but-invalid => 400.
-  if (!body || (body.stations === undefined && body.fuels === undefined)) return ALL_PREFS;
+  if (!body || body.fuels === undefined) return ALL_PREFS;
   return normalizePrefs(body);
 }
 
@@ -117,7 +117,7 @@ app.post('/api/subscribe', rateLimit(5), async (req, res) => {
   const email = String((req.body && req.body.email) || '').trim();
   if (!email || email.length > 254 || !EMAIL_RE.test(email)) return res.status(400).json({ error: 'Neplatný e-mail' });
   const prefs = prefsFrom(req.body);
-  if (!prefs) return res.status(400).json({ error: 'Vyber aspoň jednu stanici a jedno palivo' });
+  if (!prefs) return res.status(400).json({ error: 'Vyber aspoň jedno palivo' });
   try {
     // Existing addresses keep their settings (changeable only via the e-mailed link),
     // so nobody can rewrite someone else's preferences by knowing their address.
@@ -134,7 +134,7 @@ app.get('/api/subscription', rateLimit(30), async (req, res) => {
   try {
     const sub = await db.getSubscriberByToken(req.query.token);
     if (!sub) return res.status(404).json({ error: 'Odběr nenalezen' });
-    res.json({ email: sub.email, stations: sub.stations, fuels: sub.fuels });
+    res.json({ email: sub.email, fuels: sub.fuels });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DB error' });
@@ -143,11 +143,11 @@ app.get('/api/subscription', rateLimit(30), async (req, res) => {
 
 app.post('/api/subscription', rateLimit(10), async (req, res) => {
   const prefs = normalizePrefs(req.body || {});
-  if (!prefs) return res.status(400).json({ error: 'Vyber aspoň jednu stanici a jedno palivo' });
+  if (!prefs) return res.status(400).json({ error: 'Vyber aspoň jedno palivo' });
   try {
     const ok = await db.getSubscriberByToken(req.body.token) && await db.updateSubscriberPrefs(req.body.token, prefs);
     if (!ok) return res.status(404).json({ error: 'Odběr nenalezen' });
-    res.json({ ok: true, ...prefs });
+    res.json({ ok: true, fuels: prefs.fuels });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DB error' });
@@ -197,7 +197,7 @@ app.get('/unsubscribe', (req, res) => {
   const field = `<input type="hidden" name="token" value="${escapeAttr(token)}">`;
   res.send(page('Odhlásit odběr', `<h1>Odhlásit upozornění?</h1><p>Přestanou chodit e-maily o změnách cen.</p>
 <form method="post" action="/unsubscribe">${field}<button type="submit">Odhlásit</button></form>
-<p><a href="/manage.html?token=${encodeURIComponent(token)}">Jen upravit stanice a paliva</a></p>`));
+<p><a href="/manage.html?token=${encodeURIComponent(token)}">Jen upravit paliva</a></p>`));
 });
 
 app.post('/unsubscribe', rateLimit(10), async (req, res) => {
@@ -231,10 +231,10 @@ app.post('/api/push/subscribe', rateLimit(10), async (req, res) => {
     return res.status(400).json({ error: 'Invalid subscription' });
   }
   const prefs = prefsFrom(req.body);
-  if (!prefs) return res.status(400).json({ error: 'Vyber aspoň jednu stanici a jedno palivo' });
+  if (!prefs) return res.status(400).json({ error: 'Vyber aspoň jedno palivo' });
   try {
     await db.addPushSubscription({ endpoint: sub.endpoint, p256dh: sub.keys.p256dh, auth: sub.keys.auth }, prefs);
-    res.json({ ok: true, ...prefs });
+    res.json({ ok: true, fuels: prefs.fuels });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DB error' });
@@ -247,7 +247,7 @@ app.post('/api/push/status', rateLimit(30), async (req, res) => {
   if (!push.isValidPushEndpoint(endpoint)) return res.status(400).json({ error: 'Invalid endpoint' });
   try {
     const sub = await db.getPushSubscription(endpoint);
-    res.json(sub ? { subscribed: true, stations: sub.stations, fuels: sub.fuels } : { subscribed: false });
+    res.json(sub ? { subscribed: true, fuels: sub.fuels } : { subscribed: false });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DB error' });
@@ -258,11 +258,11 @@ app.post('/api/push/prefs', rateLimit(10), async (req, res) => {
   const endpoint = req.body && req.body.endpoint;
   if (!push.isValidPushEndpoint(endpoint)) return res.status(400).json({ error: 'Invalid endpoint' });
   const prefs = normalizePrefs(req.body);
-  if (!prefs) return res.status(400).json({ error: 'Vyber aspoň jednu stanici a jedno palivo' });
+  if (!prefs) return res.status(400).json({ error: 'Vyber aspoň jedno palivo' });
   try {
     const ok = await db.updatePushPrefs(endpoint, prefs);
     if (!ok) return res.status(404).json({ error: 'Subscription not found' });
-    res.json({ ok: true, ...prefs });
+    res.json({ ok: true, fuels: prefs.fuels });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'DB error' });

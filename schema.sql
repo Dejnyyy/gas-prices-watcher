@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS subscribers (
   email         VARCHAR(255) NOT NULL UNIQUE,
   token         CHAR(32) NULL,
   subscribed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  stations      VARCHAR(64) NOT NULL DEFAULT 'tank-ono,makro',
+  stations      VARCHAR(64) NOT NULL DEFAULT 'tank-ono',
   fuels         VARCHAR(64) NOT NULL DEFAULT 'natural95,diesel',
   UNIQUE INDEX uq_subscribers_token (token)
 );
@@ -40,6 +40,6 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
   p256dh     VARCHAR(255) NOT NULL,
   auth       VARCHAR(255) NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  stations   VARCHAR(64) NOT NULL DEFAULT 'tank-ono,makro',
+  stations   VARCHAR(64) NOT NULL DEFAULT 'tank-ono',
   fuels      VARCHAR(64) NOT NULL DEFAULT 'natural95,diesel'
 );

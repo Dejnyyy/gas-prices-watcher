@@ -1,6 +1,6 @@
 // Manually records a verified price for a station (e.g. read off the official
 // website when the scraper source is blocked). Does NOT send notifications.
-//   node scripts/set-price.js makro 37.90 42.90
+//   node scripts/set-price.js tank-ono 37.90 42.90
 require('dotenv').config();
 const db = require('../src/db');
 const { stationBySlug } = require('../src/stations');
@@ -11,7 +11,7 @@ const { stationBySlug } = require('../src/stations');
   const natural95 = parseFloat(n);
   const diesel = parseFloat(d);
   if (!cfg || !(natural95 > 10) || !(diesel > 10)) {
-    throw new Error('usage: node scripts/set-price.js <tank-ono|makro> <natural95> <diesel>');
+    throw new Error('usage: node scripts/set-price.js tank-ono <natural95> <diesel>');
   }
   const id = await db.upsertStation(cfg);
   const last = await db.getLatestForStation(id);

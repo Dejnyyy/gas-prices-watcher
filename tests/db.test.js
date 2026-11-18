@@ -14,11 +14,11 @@ beforeAll(async () => {
   await conn.execute('DELETE FROM subscribers');
   await conn.execute("DELETE FROM stations WHERE slug='test-station'");
   await conn.end();
-  stationId = await db.upsertStation({ slug: 'test-station', name: 'Test', source: 'mbenzin', isPrimary: false });
+  stationId = await db.upsertStation({ slug: 'test-station', name: 'Test', source: 'test', isPrimary: false });
 });
 
 test('upsertStation is idempotent and updates name', async () => {
-  const again = await db.upsertStation({ slug: 'test-station', name: 'Test Renamed', source: 'mbenzin', isPrimary: false });
+  const again = await db.upsertStation({ slug: 'test-station', name: 'Test Renamed', source: 'test', isPrimary: false });
   expect(again).toBe(stationId);
   const stations = await db.getStations();
   expect(stations.find((s) => s.id === stationId).name).toBe('Test Renamed');
@@ -40,11 +40,11 @@ test('getRecentForStation returns ascending rows', async () => {
 });
 
 test('addSubscriber stores prefs + token, getSubscribers returns them', async () => {
-  const { created, subscriber } = await db.addSubscriber('test@example.com', { stations: ['makro'], fuels: ['diesel'] });
+  const { created, subscriber } = await db.addSubscriber('test@example.com', { stations: ['tank-ono'], fuels: ['diesel'] });
   expect(created).toBe(true);
   expect(subscriber.token).toMatch(/^[a-f0-9]{32}$/);
   const subs = await db.getSubscribers();
-  expect(subs.find((s) => s.email === 'test@example.com')).toMatchObject({ stations: ['makro'], fuels: ['diesel'] });
+  expect(subs.find((s) => s.email === 'test@example.com')).toMatchObject({ stations: ['tank-ono'], fuels: ['diesel'] });
 });
 
 test('addSubscriber ignores duplicate email and keeps prefs', async () => {
@@ -52,12 +52,12 @@ test('addSubscriber ignores duplicate email and keeps prefs', async () => {
   expect(created).toBe(false);
   const subs = (await db.getSubscribers()).filter((s) => s.email === 'test@example.com');
   expect(subs).toHaveLength(1);
-  expect(subs[0].stations).toEqual(['makro']);
+  expect(subs[0].fuels).toEqual(['diesel']);
 });
 
 test('prefs update + removal by token', async () => {
   const sub = await db.getSubscriberByEmail('test@example.com');
-  expect(await db.updateSubscriberPrefs(sub.token, { stations: ['tank-ono', 'makro'], fuels: ['natural95'] })).toBe(true);
+  expect(await db.updateSubscriberPrefs(sub.token, { stations: ['tank-ono'], fuels: ['natural95'] })).toBe(true);
   expect((await db.getSubscriberByToken(sub.token)).fuels).toEqual(['natural95']);
   await db.removeSubscriberByToken(sub.token);
   expect(await db.getSubscriberByEmail('test@example.com')).toBeNull();

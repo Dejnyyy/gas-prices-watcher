@@ -25,15 +25,17 @@ const post = (path, body, type = 'application/json') => fetch(base + path, {
 
 test('subscribe responds identically for new and existing addresses (no enumeration)', async () => {
   db.addSubscriber.mockResolvedValueOnce({ created: true }).mockResolvedValueOnce({ created: false });
-  const a = await (await post('/api/subscribe', { email: 'x@y.cz', stations: ['makro'], fuels: ['diesel'] })).json();
+  const a = await (await post('/api/subscribe', { email: 'x@y.cz', fuels: ['diesel'] })).json();
   const b = await (await post('/api/subscribe', { email: 'x@y.cz', stations: ['makro'], fuels: ['diesel'] })).json();
   expect(a).toEqual({ ok: true });
   expect(b).toEqual({ ok: true });
-  expect(db.addSubscriber).toHaveBeenCalledWith('x@y.cz', { stations: ['makro'], fuels: ['diesel'] });
+  // An old client's station choice is ignored: everyone follows Tank ONO.
+  expect(db.addSubscriber).toHaveBeenNthCalledWith(1, 'x@y.cz', { stations: ['tank-ono'], fuels: ['diesel'] });
+  expect(db.addSubscriber).toHaveBeenNthCalledWith(2, 'x@y.cz', { stations: ['tank-ono'], fuels: ['diesel'] });
 });
 
 test('subscribe rejects empty preference choices', async () => {
-  const r = await post('/api/subscribe', { email: 'x@y.cz', stations: [], fuels: ['diesel'] });
+  const r = await post('/api/subscribe', { email: 'x@y.cz', fuels: [] });
   expect(r.status).toBe(400);
   expect(db.addSubscriber).not.toHaveBeenCalled();
 });

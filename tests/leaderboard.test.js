@@ -111,7 +111,16 @@ describe('observation gaps (> 48 h between two checks)', () => {
     expect(computeLastMove(quiet)).toEqual([expect.objectContaining({ fuel: 'natural95', delta: 0.5 })]);
   });
 
-  test('markGaps flags the row after a gap only', () => {
+  test('markGaps ignores long stretches without a price difference (pruned ticks)', () => {
+    const quiet = [
+      { natural95: 38.0, diesel: 40.0, checked_at: '2026-07-01T10:00:00Z' },
+      { natural95: 38.0, diesel: 40.0, checked_at: '2026-07-20T10:00:00Z' },
+      { natural95: 37.5, diesel: 40.0, checked_at: '2026-07-20T10:05:00Z' },
+    ];
+    expect(markGaps(quiet).some((r) => r.gap)).toBe(false);
+  });
+
+  test('markGaps flags the row after a gap with a price difference only', () => {
     const marked = markGaps(rows);
     expect(marked.map((r) => !!r.gap)).toEqual([false, false, false, true]);
     expect(marked[3]).toMatchObject({ natural95: 37.9, diesel: 42.9 });
