@@ -8,43 +8,47 @@
   <meta name="color-scheme" content="light dark" />
   <title>Nastavení upozornění · Dejnyho Hlídač</title>
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <script>
+    (function () {
+      var t = 'light';
+      try { if (localStorage.getItem('theme') === 'dark') t = 'dark'; } catch (e) {}
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500;62..125,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
   <header class="top">
-    <div class="top-inner">
-      <a class="brand" href="/" style="text-decoration:none">
-        <img src="/icons/icon-192.png" alt="" width="28" height="28" class="brand-mark" />
-        <div><p class="brand-name">Dejnyho Hlídač</p><p class="brand-sub">Nastavení e-mailových upozornění</p></div>
-      </a>
+    <div class="wrap top-inner">
+      <a class="wordmark" href="/">Dejnyho Hlídač</a>
     </div>
   </header>
-  <main class="page manage">
-    <section class="alerts" aria-labelledby="m-title">
-      <h1 id="m-title" class="block-title">Co ti má chodit</h1>
-      <p class="alerts-lead" id="m-lead">Načítám odběr…</p>
+  <main class="wrap page manage">
+    <section class="section" aria-labelledby="m-title">
+      <div class="section-bar"><h1 id="m-title" class="section-title">Nastavení upozornění</h1></div>
+      <p class="lead" id="m-lead">Načítám odběr…</p>
       <div id="m-form" hidden>
         <fieldset class="choice">
           <legend>Stanice</legend>
-          <label class="pill"><input type="checkbox" name="stations" value="tank-ono" /><span><i class="sw sw-ono"></i>Tank ONO Teplice</span></label>
-          <label class="pill"><input type="checkbox" name="stations" value="makro" /><span><i class="sw sw-makro"></i>Makro Trmice</span></label>
+          <label class="tog tog-ono"><input type="checkbox" name="stations" value="tank-ono" /><span>Tank ONO Teplice</span></label>
+          <label class="tog tog-makro"><input type="checkbox" name="stations" value="makro" /><span>Makro Trmice</span></label>
         </fieldset>
         <fieldset class="choice">
           <legend>Palivo</legend>
-          <label class="pill"><input type="checkbox" name="fuels" value="natural95" /><span>Natural 95</span></label>
-          <label class="pill"><input type="checkbox" name="fuels" value="diesel" /><span>Nafta</span></label>
+          <label class="tog"><input type="checkbox" name="fuels" value="natural95" /><span>Natural 95</span></label>
+          <label class="tog"><input type="checkbox" name="fuels" value="diesel" /><span>Nafta</span></label>
         </fieldset>
         <div class="manage-actions">
-          <button type="button" class="btn btn-ink" id="m-save">Uložit nastavení</button>
+          <button type="button" class="btn btn-ink" id="m-save">Uložit</button>
           <button type="button" class="btn btn-danger" id="m-unsub">Odhlásit odběr</button>
         </div>
       </div>
       <p class="msg" id="m-msg" role="status"></p>
     </section>
-    <p class="hint" style="text-align:center;margin-top:16px"><a href="/">Zpět na ceny</a></p>
+    <p class="back"><a href="/">Zpět na ceny</a></p>
   </main>
   <script>
   (() => {
@@ -68,11 +72,11 @@
       const body = { token, stations: pick('stations'), fuels: pick('fuels') };
       if (!body.stations.length || !body.fuels.length) return msg('Vyber aspoň jednu stanici a jedno palivo.', 'err');
       const r = await post('/api/subscription', body).catch(() => null);
-      msg(r && r.ok ? 'Uloženo. Další upozornění už přijdou podle nového výběru.' : 'Uložení se nepovedlo. Zkus to znovu.', r && r.ok ? 'ok' : 'err');
+      msg(r && r.ok ? 'Uloženo.' : 'Uložení se nepovedlo. Zkus to znovu.', r && r.ok ? 'ok' : 'err');
     });
     $('#m-unsub').addEventListener('click', async () => {
       const r = await post('/api/unsubscribe', { token }).catch(() => null);
-      if (r && r.ok) { $('#m-form').hidden = true; $('#m-lead').textContent = 'Odhlášeno. Už ti nebudou chodit žádné e-maily.'; msg(''); }
+      if (r && r.ok) { $('#m-form').hidden = true; $('#m-lead').textContent = 'Odhlášeno. Další e-maily už nepřijdou.'; msg(''); }
       else msg('Odhlášení se nepovedlo. Zkus to znovu.', 'err');
     });
   })();

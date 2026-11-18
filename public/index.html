@@ -34,9 +34,16 @@
   }
   </script>
   <link rel="manifest" href="/manifest.webmanifest" />
-  <meta name="theme-color" content="#eceef1" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#121417" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#ffffff" />
   <meta name="color-scheme" content="light dark" />
+  <script>
+    (function () {
+      var t = 'light';
+      try { if (localStorage.getItem('theme') === 'dark') t = 'dark'; } catch (e) {}
+      document.documentElement.setAttribute('data-theme', t);
+      if (t === 'dark') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0b0b0b');
+    })();
+  </script>
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -45,96 +52,58 @@
   <meta name="apple-mobile-web-app-title" content="Hlídač" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500;62..125,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=6" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous" defer></script>
-  <script src="app.js?v=5" defer></script>
+  <script src="app.js?v=6" defer></script>
 </head>
 <body>
 
   <header class="top">
-    <div class="top-inner">
-      <div class="brand">
-        <img src="/icons/icon-192.png" alt="" width="28" height="28" class="brand-mark" />
-        <div>
-          <h1 class="brand-name">Dejnyho Hlídač</h1>
-          <p class="brand-sub">Ceny paliv Tank ONO Teplice a Makro Ústí nad Labem</p>
-        </div>
+    <div class="wrap top-inner">
+      <a class="wordmark" href="/">Dejnyho Hlídač</a>
+      <p class="checked" id="pulse" aria-live="polite"><span id="pulse-text">Načítám ceny</span></p>
+      <div class="theme" role="group" aria-label="Vzhled">
+        <button type="button" data-theme-set="light" aria-pressed="true">Světlý</button>
+        <button type="button" data-theme-set="dark" aria-pressed="false">Tmavý</button>
       </div>
-      <p class="pulse" id="pulse" aria-live="polite"><span class="pulse-dot" aria-hidden="true"></span><span id="pulse-text">načítám ceny</span></p>
     </div>
   </header>
 
-  <main class="page">
+  <main class="wrap page">
+
+    <h1 class="sr-only">Ceny Natural 95 a nafty: Tank ONO Teplice a Makro Ústí nad Labem</h1>
+
+    <section class="board" aria-label="Aktuální ceny">
+      <article class="station" data-station="tank-ono" id="totem-tank-ono">
+        <header class="station-head">
+          <h2 class="station-name">Tank ONO</h2>
+          <p class="station-loc">Teplice</p>
+        </header>
+        <div class="rows">
+          <div class="row"><span class="row-fuel">Natural 95</span><span class="row-price is-empty">—</span><span class="row-move">&nbsp;</span></div>
+          <div class="row"><span class="row-fuel">Nafta</span><span class="row-price is-empty">—</span><span class="row-move">&nbsp;</span></div>
+        </div>
+        <p class="station-foot">&nbsp;</p>
+      </article>
+      <article class="station" data-station="makro" id="totem-makro">
+        <header class="station-head">
+          <h2 class="station-name">Makro</h2>
+          <p class="station-loc">Ústí nad Labem, Trmice</p>
+        </header>
+        <div class="rows">
+          <div class="row"><span class="row-fuel">Natural 95</span><span class="row-price is-empty">—</span><span class="row-move">&nbsp;</span></div>
+          <div class="row"><span class="row-fuel">Nafta</span><span class="row-price is-empty">—</span><span class="row-move">&nbsp;</span></div>
+        </div>
+        <p class="station-foot">&nbsp;</p>
+      </article>
+    </section>
 
     <p class="verdict" id="verdict" aria-live="polite">&nbsp;</p>
 
-    <section class="board" aria-label="Aktuální ceny">
-      <article class="totem" data-station="tank-ono" id="totem-tank-ono">
-        <header class="totem-head">
-          <h2 class="totem-name">Tank ONO</h2>
-          <p class="totem-loc">ČS Teplice</p>
-        </header>
-        <div class="totem-panels">
-          <div class="panel"><div class="panel-fuel"><span>Natural 95</span></div><div class="panel-price"><span class="skeleton">00,00</span><small>Kč</small></div><p class="panel-move">&nbsp;</p></div>
-          <div class="panel"><div class="panel-fuel"><span>Nafta</span></div><div class="panel-price"><span class="skeleton">00,00</span><small>Kč</small></div><p class="panel-move">&nbsp;</p></div>
-        </div>
-        <p class="totem-foot"></p>
-        <span class="totem-post" aria-hidden="true"></span>
-      </article>
-      <article class="totem" data-station="makro" id="totem-makro">
-        <header class="totem-head">
-          <h2 class="totem-name">Makro</h2>
-          <p class="totem-loc">Ústí n. L. – Trmice</p>
-        </header>
-        <div class="totem-panels">
-          <div class="panel"><div class="panel-fuel"><span>Natural 95</span></div><div class="panel-price"><span class="skeleton">00,00</span><small>Kč</small></div><p class="panel-move">&nbsp;</p></div>
-          <div class="panel"><div class="panel-fuel"><span>Nafta</span></div><div class="panel-price"><span class="skeleton">00,00</span><small>Kč</small></div><p class="panel-move">&nbsp;</p></div>
-        </div>
-        <p class="totem-foot"></p>
-        <span class="totem-post" aria-hidden="true"></span>
-      </article>
-
-      <section class="alerts" id="alerts" aria-labelledby="alerts-title">
-        <h2 id="alerts-title" class="block-title">Upozornění na změnu</h2>
-        <p class="alerts-lead">Pošlu zprávu hned, jak se cena pohne. Vyber si, co tě zajímá.</p>
-
-        <fieldset class="choice">
-          <legend>Stanice</legend>
-          <label class="pill"><input type="checkbox" name="stations" value="tank-ono" checked /><span><i class="sw sw-ono"></i>Tank ONO Teplice</span></label>
-          <label class="pill"><input type="checkbox" name="stations" value="makro" checked /><span><i class="sw sw-makro"></i>Makro Trmice</span></label>
-        </fieldset>
-        <fieldset class="choice">
-          <legend>Palivo</legend>
-          <label class="pill"><input type="checkbox" name="fuels" value="natural95" checked /><span>Natural 95</span></label>
-          <label class="pill"><input type="checkbox" name="fuels" value="diesel" checked /><span>Nafta</span></label>
-        </fieldset>
-        <p class="hint" id="choice-hint" role="alert"></p>
-
-        <form id="subscribe-form" class="mail" novalidate>
-          <label for="sub-email" class="sr-only">E-mail</label>
-          <input type="email" id="sub-email" placeholder="tvuj@email.cz" required autocomplete="email" inputmode="email" />
-          <button type="submit" class="btn btn-ink">Odebírat e-mailem</button>
-        </form>
-        <p id="sub-message" class="msg" role="status"></p>
-
-        <div id="push-block" class="push" hidden>
-          <div class="push-row">
-            <button id="push-toggle" type="button" class="btn btn-line">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              <span id="push-toggle-label">Zapnout notifikace v telefonu</span>
-            </button>
-            <button id="push-save" type="button" class="btn btn-ink" hidden>Uložit výběr</button>
-          </div>
-          <p id="push-message" class="msg" role="status"></p>
-          <p id="push-ios-hint" class="hint" hidden>Na iPhonu nejdřív přidej Hlídače na plochu (Sdílet, Přidat na plochu) a notifikace zapni v něm.</p>
-        </div>
-      </section>
-    </section>
-
-    <section class="chart-block" aria-labelledby="chart-title">
-      <div class="block-bar">
-        <h2 id="chart-title" class="block-title">Vývoj cen</h2>
+    <section class="section" aria-labelledby="chart-title">
+      <div class="section-bar">
+        <h2 id="chart-title" class="section-title">Vývoj cen</h2>
         <div class="controls">
           <div class="seg" role="group" aria-label="Palivo v grafu">
             <button type="button" data-fuel="natural95" aria-pressed="true">Natural 95</button>
@@ -148,47 +117,90 @@
         </div>
       </div>
       <div class="legend" id="legend">
-        <span><i class="sw sw-ono"></i>Tank ONO Teplice</span>
-        <span><i class="sw sw-makro"></i>Makro Trmice</span>
+        <span><i class="key key-ono"></i>Tank ONO Teplice</span>
+        <span><i class="key key-makro"></i>Makro Trmice</span>
       </div>
       <div class="chart-wrap">
         <canvas id="priceChart" role="img" aria-label="Graf vývoje ceny paliva na obou stanicích"></canvas>
       </div>
     </section>
 
-    <div class="lower">
-      <section class="history" aria-labelledby="history-title">
-        <div class="block-bar">
-          <h2 id="history-title" class="block-title">Poslední změny</h2>
-          <span class="count" id="history-count"></span>
+    <section class="section" aria-labelledby="history-title">
+      <div class="section-bar">
+        <h2 id="history-title" class="section-title">Změny cen</h2>
+        <span class="count" id="history-count"></span>
+      </div>
+      <table class="changes">
+        <thead>
+          <tr><th scope="col">Kdy</th><th scope="col">Stanice</th><th scope="col">Palivo</th><th scope="col" class="num">Předtím</th><th scope="col" class="num">Nyní</th><th scope="col" class="num">Rozdíl</th></tr>
+        </thead>
+        <tbody id="changes"></tbody>
+      </table>
+      <button type="button" class="btn btn-line more" id="history-more" hidden>Starší změny</button>
+    </section>
+
+    <div class="split">
+      <section class="section alerts" id="alerts" aria-labelledby="alerts-title">
+        <div class="section-bar">
+          <h2 id="alerts-title" class="section-title">Upozornění</h2>
         </div>
-        <ol class="changes" id="changes"></ol>
-        <button type="button" class="btn btn-line more" id="history-more" hidden>Ukázat starší změny</button>
+        <p class="lead">E-mail nebo notifikace v telefonu při každé změně ceny.</p>
+
+        <fieldset class="choice">
+          <legend>Stanice</legend>
+          <label class="tog tog-ono"><input type="checkbox" name="stations" value="tank-ono" checked /><span>Tank ONO Teplice</span></label>
+          <label class="tog tog-makro"><input type="checkbox" name="stations" value="makro" checked /><span>Makro Trmice</span></label>
+        </fieldset>
+        <fieldset class="choice">
+          <legend>Palivo</legend>
+          <label class="tog"><input type="checkbox" name="fuels" value="natural95" checked /><span>Natural 95</span></label>
+          <label class="tog"><input type="checkbox" name="fuels" value="diesel" checked /><span>Nafta</span></label>
+        </fieldset>
+        <p class="hint" id="choice-hint" role="alert"></p>
+
+        <form id="subscribe-form" class="mail" novalidate>
+          <label for="sub-email" class="field-label">E-mail</label>
+          <div class="mail-row">
+            <input type="email" id="sub-email" placeholder="jan@seznam.cz" required autocomplete="email" inputmode="email" />
+            <button type="submit" class="btn btn-ink">Odebírat</button>
+          </div>
+        </form>
+        <p id="sub-message" class="msg" role="status"></p>
+
+        <div id="push-block" class="push" hidden>
+          <div class="push-row">
+            <button id="push-toggle" type="button" class="btn btn-line"><span id="push-toggle-label">Zapnout notifikace v telefonu</span></button>
+            <button id="push-save" type="button" class="btn btn-ink" hidden>Uložit výběr</button>
+          </div>
+          <p id="push-message" class="msg" role="status"></p>
+          <p id="push-ios-hint" class="hint" hidden>Na iPhonu nejdřív přidej Hlídače na plochu (Sdílet, Přidat na plochu) a notifikace zapni v něm.</p>
+        </div>
       </section>
 
-      <section class="about" aria-labelledby="about-title">
-        <h2 id="about-title" class="block-title">Jak hlídač funguje</h2>
+      <section class="section about" aria-labelledby="about-title">
+        <div class="section-bar">
+          <h2 id="about-title" class="section-title">Jak to funguje</h2>
+        </div>
         <p>
-          Každých pět minut si přečte ceník Tank ONO pro čerpací stanici v Teplicích a ceny na čerpací stanici
-          Makro v Ústí nad Labem (Žižkova, u Trmic). Hlídá Natural 95 a naftu a ukládá každou změnu, takže je vidět,
-          kdo zrovna zlevnil, o kolik a kdy.
+          Každých pět minut se načte ceník Tank ONO Teplice a ceny na stanici Makro v Ústí nad Labem
+          (Žižkova, Trmice). Každá změna Natural 95 a nafty se uloží do historie.
         </p>
         <p>
-          Upozornění chodí jen na stanice a paliva, které si vybereš. Nastavení e-mailu změníš odkazem
-          v každém upozornění, notifikace v telefonu přímo tady na stránce.
+          Upozornění chodí jen na vybrané stanice a paliva. Nastavení e-mailu změníš odkazem v každém
+          upozornění, notifikace přímo tady.
         </p>
         <p class="fine">
-          Ceny slouží pro orientaci, platí cena na stojanu. Projekt vytvořil Daniel Slabý a s provozovateli
-          stanic nijak nesouvisí.
+          Ceny jsou orientační, platí cena na stojanu. Zdroj cen Makra bývá nedostupný, jeho cena proto může být starší.
+          Web nesouvisí s provozovateli stanic.
         </p>
       </section>
     </div>
 
   </main>
 
-  <footer class="foot">
-    <a href="https://dejny.eu">Daniel Slabý, dejny.eu</a>
+  <footer class="wrap"><div class="foot">
+    <a href="https://dejny.eu">Daniel Slabý</a>
     <span>Zdroje: <a href="https://www.tank-ono.cz/cz/index.php?page=cenik">tank-ono.cz</a>, <a href="https://www.makro.cz/prodejny/usti-nad-labem">makro.cz</a>, <a href="https://www.mbenzin.cz">Ceny: mbenzin.cz</a></span>
-  </footer>
+  </div></footer>
 </body>
 </html>

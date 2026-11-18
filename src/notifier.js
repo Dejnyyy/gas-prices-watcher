@@ -8,13 +8,16 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = 'Dejnyho Hlídač <hlidac@dejny.eu>';
 
 const C = {
-  down: '#15803d', downBg: '#dcfce7',
-  up: '#dc2626', upBg: '#fee2e2',
-  ink: '#16181d', muted: '#6b7280', line: '#e5e7eb', bg: '#ffffff', soft: '#f6f7f9',
-  accent: '#f97316',
+  down: '#15803d', up: '#b91c1c',
+  ink: '#0a0a0a', muted: '#6e6e6e', line: '#e2e2e2', bg: '#ffffff',
 };
-const MONO = "ui-monospace,'SF Mono',Menlo,Consolas,monospace";
-const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+// Brand fills: Tank ONO yellow with black text, Makro blue with white text.
+const BRAND = {
+  'tank-ono': { bg: '#ffd200', fg: '#0a0a0a', cls: 'b-ono' },
+  makro: { bg: '#0033a0', fg: '#ffffff', cls: 'b-makro' },
+};
+const brandOf = (slug) => BRAND[slug] || { bg: C.ink, fg: '#ffffff', cls: '' };
+const SANS = "Archivo,'Helvetica Neue',Helvetica,Arial,sans-serif";
 
 function escapeHtml(s) {
   return String(s)
@@ -34,27 +37,26 @@ function buildSubject(changes) {
   return buildHeadline(flattenChanges(changes));
 }
 
+// One change = brand block (station + fuel) beside the new price.
 function changeRow(i) {
   const down = i.delta < 0;
-  const col = down ? C.down : C.up;
-  const bg = down ? C.downBg : C.upBg;
-  const cls = down ? 'dn' : 'up';
+  const br = brandOf(i.slug);
   return `
-  <tr>
-    <td class="row" style="padding:12px 0;border-bottom:1px solid ${C.line};vertical-align:middle">
-      <div class="ink" style="font:600 15px/1.25 ${SANS};color:${C.ink}">${escapeHtml(i.label)}</div>
-      <div class="muted" style="font:500 12px/1.4 ${SANS};color:${C.muted};text-transform:uppercase;letter-spacing:.06em">${escapeHtml(i.fuelLabel)}</div>
-    </td>
-    <td class="row" align="right" style="padding:12px 0;border-bottom:1px solid ${C.line};vertical-align:middle;white-space:nowrap">
-      <span class="muted" style="font:400 13px ${MONO};color:${C.muted};text-decoration:line-through">${price(i.old)}</span>
-      <span class="muted" style="font:400 13px ${MONO};color:${C.muted}">&nbsp;→&nbsp;</span>
-      <span class="ink" style="font:700 20px ${MONO};color:${C.ink}">${price(i.new)}</span>
-      <span class="muted" style="font:400 12px ${SANS};color:${C.muted}">&nbsp;Kč</span>
-    </td>
-    <td class="row" align="right" style="padding:12px 0 12px 10px;border-bottom:1px solid ${C.line};vertical-align:middle;white-space:nowrap;width:1%">
-      <span class="chip ${cls}" style="display:inline-block;padding:4px 9px;border-radius:999px;background:${bg};color:${col};font:700 13px ${MONO}">${arrow(i.delta)}&nbsp;${signed(i.delta)}</span>
-    </td>
-  </tr>`;
+  <tr><td style="padding:0 0 8px">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td class="${br.cls}" width="150" bgcolor="${br.bg}" style="width:150px;padding:14px 16px;background:${br.bg};color:${br.fg};vertical-align:top;border-radius:4px 0 0 4px">
+        <div class="${br.cls}" style="font:800 17px/1.15 ${SANS};color:${br.fg}">${escapeHtml(i.label)}</div>
+        <div class="${br.cls}" style="font:500 14px/1.4 ${SANS};color:${br.fg};padding-top:2px">${escapeHtml(i.fuelLabel)}</div>
+      </td>
+      <td class="row" style="padding:10px 0 10px 18px;border-top:1px solid ${C.line};border-bottom:1px solid ${C.line};vertical-align:middle">
+        <span class="ink" style="font:800 34px/1 ${SANS};color:${C.ink};letter-spacing:-0.02em;white-space:nowrap">${price(i.new)}</span><span class="ink" style="font:500 14px ${SANS};color:${C.ink}">&nbsp;Kč</span>
+        <div style="font:500 14px/1.4 ${SANS};padding-top:4px;white-space:nowrap">
+          <span class="${down ? 'dn' : 'up'}" style="font-weight:800;color:${down ? C.down : C.up}">${arrow(i.delta)}&nbsp;${signed(i.delta)}</span>
+          <span class="muted" style="color:${C.muted}">&nbsp;z ${price(i.old)}</span>
+        </div>
+      </td>
+    </tr></table>
+  </td></tr>`;
 }
 
 // Small "current prices" grid for the subscriber's stations × fuels.
@@ -62,27 +64,22 @@ function currentTable(latest, prefs) {
   const stations = STATIONS.filter((s) => prefs.stations.includes(s.slug) && latest[s.slug]);
   const fuels = FUELS.filter((f) => prefs.fuels.includes(f.key));
   if (!stations.length) return '';
-  const min = {};
-  for (const f of fuels) {
-    const vals = stations.map((s) => latest[s.slug][f.key]).filter((v) => v != null);
-    min[f.key] = vals.length > 1 ? Math.min(...vals) : null;
-  }
   const head = fuels.map((f) =>
-    `<td align="right" class="muted" style="padding:0 0 6px 12px;font:600 11px ${SANS};color:${C.muted};text-transform:uppercase;letter-spacing:.06em">${f.label}</td>`
+    `<td align="right" class="muted row" style="padding:0 0 6px 12px;border-bottom:1px solid ${C.ink};font:500 13px ${SANS};color:${C.muted}">${f.label}</td>`
   ).join('');
   const rows = stations.map((s) => {
+    const br = brandOf(s.slug);
     const cells = fuels.map((f) => {
       const v = latest[s.slug][f.key];
-      const best = min[f.key] != null && v === min[f.key] && stations.filter((x) => latest[x.slug][f.key] === v).length === 1;
-      return `<td align="right" class="ink" style="padding:5px 0 5px 12px;font:${best ? 700 : 400} 14px ${MONO};color:${C.ink};white-space:nowrap">${v != null ? price(v) : '—'}${best ? `<span style="color:${C.down}">&nbsp;●</span>` : ''}</td>`;
+      return `<td align="right" class="ink row" style="padding:9px 0 9px 12px;border-bottom:1px solid ${C.line};font:800 17px ${SANS};color:${C.ink};white-space:nowrap">${v != null ? price(v) : '—'}</td>`;
     }).join('');
-    return `<tr><td class="ink" style="padding:5px 0;font:500 14px ${SANS};color:${C.ink}">${escapeHtml(s.label)}</td>${cells}</tr>`;
+    return `<tr><td class="ink row" style="padding:9px 0;border-bottom:1px solid ${C.line};font:500 15px ${SANS};color:${C.ink}"><span class="${br.cls}" style="display:inline-block;width:10px;height:10px;background:${br.bg};margin-right:8px">&nbsp;</span>${escapeHtml(s.label)}</td>${cells}</tr>`;
   }).join('');
   return `
-  <tr><td style="padding:22px 0 0">
-    <div class="muted" style="font:600 11px ${SANS};color:${C.muted};text-transform:uppercase;letter-spacing:.08em;padding-bottom:8px">Aktuální ceny (Kč/l)</div>
+  <tr><td style="padding:24px 0 0">
+    <div class="ink" style="font:800 17px ${SANS};color:${C.ink};padding-bottom:8px">Aktuální ceny <span class="muted" style="font-weight:500;color:${C.muted}">Kč/l</span></div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-      <tr><td></td>${head}</tr>${rows}
+      <tr><td class="row" style="border-bottom:1px solid ${C.ink}"></td>${head}</tr>${rows}
     </table>
   </td></tr>`;
 }
@@ -118,15 +115,19 @@ function buildEmailHtml(items, { baseUrl, email, token, latest = {}, prefs = ALL
 <meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">
 <title>${escapeHtml(headline)}</title>
 <style>
+  .b-ono { background:#ffd200 !important; color:#0a0a0a !important; }
+  .b-makro { background:#0033a0 !important; color:#ffffff !important; }
   @media (prefers-color-scheme: dark) {
-    body, .bg { background:#111317 !important; }
-    .ink { color:#f3f4f6 !important; }
-    .muted { color:#9ca3af !important; }
-    .row { border-color:#2a2e36 !important; }
-    .chip.dn { background:#14532d !important; color:#86efac !important; }
-    .chip.up { background:#7f1d1d !important; color:#fca5a5 !important; }
-    .btn { background:#f97316 !important; }
+    body, .bg { background:#0b0b0b !important; }
+    .ink { color:#f2f2f2 !important; }
+    .muted { color:#8c8c8c !important; }
+    .row { border-color:#2a2a2a !important; }
+    .rule { border-color:#f2f2f2 !important; }
+    .dn { color:#4ade80 !important; }
+    .up { color:#f87171 !important; }
+    .btn { background:#f2f2f2 !important; color:#0a0a0a !important; }
   }
+  [data-ogsc] .ink { color:#f2f2f2 !important; }
   @media (max-width:480px) { .wrap { padding:0 14px 40px !important; } }
 </style>
 </head>
@@ -135,21 +136,20 @@ function buildEmailHtml(items, { baseUrl, email, token, latest = {}, prefs = ALL
 <table role="presentation" class="bg" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.bg}"><tr>
 <td align="center" class="wrap" style="padding:0 20px 48px">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:540px">
-    <tr><td style="height:4px;background:${C.accent};font-size:0;line-height:0" bgcolor="${C.accent}">&nbsp;</td></tr>
-    <tr><td style="padding:18px 0 6px">
-      <span class="muted" style="font:600 12px ${SANS};color:${C.muted};letter-spacing:.04em">DEJNYHO HLÍDAČ</span>
-      <span class="muted" style="font:400 12px ${MONO};color:${C.muted};float:right">${formatDate(now)}</span>
+    <tr><td class="rule" style="padding:24px 0 12px;border-bottom:2px solid ${C.ink}">
+      <span class="ink" style="font:800 16px ${SANS};color:${C.ink}">Dejnyho Hlídač</span>
+      <span class="muted" style="font:500 13px ${SANS};color:${C.muted};float:right;padding-top:2px">${formatDate(now)}</span>
     </td></tr>
-    <tr><td>
+    <tr><td style="padding:16px 0 0">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${items.map(changeRow).join('')}</table>
     </td></tr>
     ${currentTable(latest, prefs)}
-    ${note ? `<tr><td class="muted" style="padding:18px 0 0;font:400 14px/1.5 ${SANS};color:${C.muted}">${escapeHtml(note)}</td></tr>` : ''}
-    <tr><td style="padding:22px 0 26px">
-      <a class="btn" href="${baseUrl}" style="display:inline-block;background:${C.ink};color:#ffffff;text-decoration:none;font:600 14px ${SANS};padding:11px 20px;border-radius:10px">Graf a historie →</a>
+    ${note ? `<tr><td class="ink" style="padding:18px 0 0;font:500 15px/1.5 ${SANS};color:${C.ink}">${escapeHtml(note)}</td></tr>` : ''}
+    <tr><td style="padding:24px 0 28px">
+      <a class="btn" href="${baseUrl}" style="display:inline-block;background:${C.ink};color:#ffffff;text-decoration:none;font:800 15px ${SANS};padding:12px 20px;border-radius:4px">Graf a historie cen</a>
     </td></tr>
-    <tr><td class="row muted" style="border-top:1px solid ${C.line};padding-top:14px;font:400 12px/1.6 ${SANS};color:${C.muted}">
-      Pro ${escapeHtml(email)}${manage ? ` · <a href="${manage}" class="muted" style="color:${C.muted};text-decoration:underline">upravit odběr</a> · <a href="${unsub}" class="muted" style="color:${C.muted};text-decoration:underline">odhlásit</a>` : ''}
+    <tr><td class="row muted" style="border-top:1px solid ${C.line};padding-top:14px;font:500 13px/1.6 ${SANS};color:${C.muted}">
+      Pro ${escapeHtml(email)}${manage ? `. <a href="${manage}" class="muted" style="color:${C.muted};text-decoration:underline">Upravit odběr</a>, <a href="${unsub}" class="muted" style="color:${C.muted};text-decoration:underline">odhlásit</a>` : ''}
     </td></tr>
   </table>
 </td></tr></table>

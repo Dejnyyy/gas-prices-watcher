@@ -169,9 +169,16 @@ app.post('/api/unsubscribe', rateLimit(10), async (req, res) => {
 function page(title, bodyHtml) {
   return `<!DOCTYPE html><html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><meta name="color-scheme" content="light dark"><title>${title} · Dejnyho Hlídač</title>
-<style>:root{color-scheme:light dark}body{font:16px/1.55 system-ui,sans-serif;max-width:26rem;margin:16vh auto;padding:0 20px;text-align:center}
-h1{font-size:1.35rem;margin:0 0 .5rem}p{opacity:.75}button,a.b{font:600 15px system-ui;padding:.7rem 1.2rem;border-radius:10px;border:0;background:#f97316;color:#fff;cursor:pointer;text-decoration:none;display:inline-block}</style>
-</head><body>${bodyHtml}</body></html>`;
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;800&display=swap" rel="stylesheet">
+<style>:root{color-scheme:light;--bg:#fff;--ink:#0a0a0a;--muted:#6e6e6e}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#0b0b0b;--ink:#f2f2f2;--muted:#8c8c8c}}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.55 Archivo,'Helvetica Neue',Arial,sans-serif}
+main{max-width:30rem;margin:14vh auto;padding:0 16px}
+h1{font-weight:800;font-size:2rem;line-height:1.1;letter-spacing:-.02em;margin:0 0 .6rem;border-top:2px solid var(--ink);padding-top:.6rem}
+p{color:var(--muted);margin:0 0 1.2rem}a{color:inherit;text-underline-offset:3px}
+button,a.b{font:800 15px Archivo,'Helvetica Neue',Arial,sans-serif;padding:.7rem 1.25rem;border-radius:4px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer;text-decoration:none;display:inline-block}
+form{margin:0 0 1.2rem}</style>
+</head><body><main>${bodyHtml}</main></body></html>`;
 }
 
 function escapeAttr(s) {
@@ -188,9 +195,9 @@ app.get('/unsubscribe', (req, res) => {
   // so it never deletes anything; the newest e-mail carries a tokenised link.
   if (!token) return res.status(400).send(page('Použij nový odkaz', LEGACY_MSG));
   const field = `<input type="hidden" name="token" value="${escapeAttr(token)}">`;
-  res.send(page('Odhlásit odběr', `<h1>Odhlásit upozornění?</h1><p>Přestanou ti chodit e-maily o změnách cen.</p>
+  res.send(page('Odhlásit odběr', `<h1>Odhlásit upozornění?</h1><p>Přestanou chodit e-maily o změnách cen.</p>
 <form method="post" action="/unsubscribe">${field}<button type="submit">Odhlásit</button></form>
-<p><a href="/manage.html?token=${encodeURIComponent(token)}">Radši jen upravit, co mi chodí</a></p>`));
+<p><a href="/manage.html?token=${encodeURIComponent(token)}">Jen upravit stanice a paliva</a></p>`));
 });
 
 app.post('/unsubscribe', rateLimit(10), async (req, res) => {
@@ -199,10 +206,10 @@ app.post('/unsubscribe', rateLimit(10), async (req, res) => {
     if (!token) return res.status(400).send(page('Použij nový odkaz', LEGACY_MSG));
     const sub = await db.getSubscriberByToken(token);
     if (sub) await db.removeSubscriberByToken(sub.token);
-    res.send(page('Odhlášeno', '<h1>Hotovo, odhlášeno</h1><p>Už ti nebudeme posílat e-maily o změnách cen.</p><a class="b" href="/">Zpět na přehled</a>'));
+    res.send(page('Odhlášeno', '<h1>Odhlášeno</h1><p>Další e-maily o změnách cen už nepřijdou.</p><a class="b" href="/">Zpět na přehled</a>'));
   } catch (err) {
     console.error(err);
-    res.status(500).send(page('Chyba', '<h1>Odhlášení se nepovedlo</h1><p>Zkus to prosím znovu.</p>'));
+    res.status(500).send(page('Chyba', '<h1>Odhlášení se nepovedlo</h1><p>Zkus to znovu.</p>'));
   }
 });
 

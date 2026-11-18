@@ -10,8 +10,8 @@
     { key: 'diesel', label: 'Nafta', lower: 'nafta' },
   ];
   const STATIONS = {
-    'tank-ono': { label: 'Tank ONO Teplice', short: 'Tank ONO', at: 'na Tank ONO', cls: 'v-ono', cssVar: '--ono' },
-    makro: { label: 'Makro Trmice', short: 'Makro', at: 'v Makru', cls: 'v-makro', cssVar: '--makro' },
+    'tank-ono': { label: 'Tank ONO Teplice', short: 'Tank ONO', at: 'na Tank ONO', gen: 'Tank ONO', key: 'key-ono', line: '--ono-line' },
+    makro: { label: 'Makro Trmice', short: 'Makro', at: 'v Makru', gen: 'Makra', key: 'key-makro', line: '--makro-line' },
   };
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -37,26 +37,40 @@
   const dayMonth = (iso) => new Date(iso).toLocaleDateString('cs-CZ', { timeZone: TZ, day: 'numeric', month: 'numeric' });
   const dateTime = (iso) => new Date(iso).toLocaleString('cs-CZ', { timeZone: TZ, day: 'numeric', month: 'numeric', hour: 'numeric', minute: '2-digit' });
   const time = (iso) => new Date(iso).toLocaleTimeString('cs-CZ', { timeZone: TZ, hour: 'numeric', minute: '2-digit' });
+  const isToday = (iso) => dayMonth(iso) === dayMonth(new Date().toISOString());
+  const when = (iso) => (isToday(iso) ? 'dnes ' : dayMonth(iso) + ' ') + time(iso);
 
-  function countUp(node, target, delay = 0) {
-    if (reduceMotion) { node.textContent = fmt(target); return; }
-    const from = Math.max(0, target - 4);
-    const dur = 900;
-    let start;
-    const tick = (now) => {
-      if (start == null) start = now + delay;
-      const t = Math.min(Math.max((now - start) / dur, 0), 1);
-      const e = 1 - Math.pow(1 - t, 4);
-      node.textContent = fmt(from + (target - from) * e);
-      if (t < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
+  function stationTag(slug, text) {
+    const s = el('span', 'st');
+    s.appendChild(el('i', 'key ' + STATIONS[slug].key));
+    s.appendChild(document.createTextNode(text));
+    return s;
   }
 
-  // ── Latest prices: totems, verdict, pulse ──
+  // ── Theme (light by default, manual switch) ──
+
+  let chart = null;
+  function applyTheme(t, animate) {
+    if (animate && !reduceMotion) {
+      document.body.classList.add('theming');
+      setTimeout(() => document.body.classList.remove('theming'), 260);
+    }
+    document.documentElement.setAttribute('data-theme', t);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', t === 'dark' ? '#0b0b0b' : '#ffffff');
+    document.querySelectorAll('[data-theme-set]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeSet === t)));
+    try { localStorage.setItem('theme', t); } catch (e) { /* private mode */ }
+    if (chart) { chart.destroy(); chart = null; renderChart(); }
+  }
+  document.querySelectorAll('[data-theme-set]').forEach((b) => {
+    b.addEventListener('click', () => applyTheme(b.dataset.themeSet, true));
+  });
+  document.querySelectorAll('[data-theme-set]').forEach((b) =>
+    b.setAttribute('aria-pressed', String(b.dataset.themeSet === document.documentElement.getAttribute('data-theme'))));
+
+  // ── Latest prices: station blocks, verdict, last check ──
 
   let latest = null;
-  let firstRender = true;
 
   function isStale(s) { return !s.available || minutesAgo(s.checked_at) > STALE_MIN; }
 
@@ -70,119 +84,85 @@
     return { slug: d < 0 ? 'tank-ono' : 'makro', diff: Math.abs(d) };
   }
 
-  function renderTotem(s) {
+  function renderStation(s) {
     const root = $('#totem-' + s.slug);
     if (!root) return;
-    const panels = $('.totem-panels', root);
-    const foot = $('.totem-foot', root);
-    root.classList.toggle('is-stale', isStale(s));
-    panels.replaceChildren();
+    const rows = $('.rows', root);
+    const foot = $('.station-foot', root);
+    root.classList.toggle('is-stale', s.available && isStale(s));
+    const prev = [...rows.querySelectorAll('.row-price')].map((n) => n.dataset.v || '');
+    rows.replaceChildren();
 
     FUELS.forEach((f, idx) => {
-      const p = el('div', 'panel');
-      const head = el('div', 'panel-fuel');
-      head.appendChild(el('span', null, f.label));
-      const c = cheaperOf(f.key);
-      if (c && !c.same && c.slug === s.slug) {
-        p.classList.add('is-best');
-        head.appendChild(el('span', 'panel-best', 'levněji o ' + fmt(c.diff)));
-      }
-      p.appendChild(head);
+      const r = el('div', 'row');
+      r.appendChild(el('span', 'row-fuel', f.label));
 
-      const price = el('div', 'panel-price');
-      const num = el('span', null, s.available ? fmt(s[f.key]) : '—');
-      price.appendChild(num);
-      price.appendChild(el('small', null, 'Kč'));
-      p.appendChild(price);
-
-      const move = el('p', 'panel-move');
+      const move = el('span', 'row-move');
       const m = s.lastMoveByFuel && s.lastMoveByFuel[f.key];
-      if (m) {
-        const b = el('b', m.delta < 0 ? 'dn' : 'up', (m.delta < 0 ? '↓ ' : '↑ ') + fmt(Math.abs(m.delta)));
-        move.appendChild(b);
-        move.appendChild(document.createTextNode(' Kč, ' + dayMonth(m.at)));
-      } else {
-        move.textContent = s.available ? 'zatím beze změny' : 'bez dat';
-      }
-      p.appendChild(move);
-      panels.appendChild(p);
+      if (m) move.textContent = (m.delta < 0 ? '↓ ' : '↑ ') + fmt(Math.abs(m.delta)) + ' Kč, ' + dayMonth(m.at);
+      else move.textContent = s.available ? 'beze změny' : '';
+      r.appendChild(move);
 
-      if (s.available && firstRender) countUp(num, s[f.key], idx * 120);
+      const price = el('span', 'row-price');
+      if (s.available) {
+        const v = fmt(s[f.key]);
+        price.dataset.v = v;
+        price.appendChild(document.createTextNode(v));
+        price.appendChild(el('small', null, 'Kč'));
+        if (prev[idx] !== v) price.classList.add('is-fresh');
+      } else {
+        price.classList.add('is-empty');
+        price.textContent = '—';
+      }
+      r.appendChild(price);
+      rows.appendChild(r);
     });
 
-    if (!s.available) foot.textContent = 'Zatím žádná data.';
-    else if (isStale(s)) foot.textContent = 'Poslední údaj ' + dateTime(s.checked_at) + ', zdroj teď neodpovídá.';
+    if (!s.available) foot.textContent = 'Zatím bez dat';
+    else if (isStale(s)) foot.textContent = 'Cena ověřena ' + when(s.checked_at);
     else foot.textContent = 'Ověřeno ' + relTime(s.checked_at);
   }
 
   function renderVerdict() {
     const v = $('#verdict');
     v.replaceChildren();
-    const parts = [];
-    for (const f of FUELS) {
-      const c = cheaperOf(f.key);
-      if (!c) continue;
-      parts.push({ f, c });
-    }
+    const t = (s) => v.appendChild(document.createTextNode(s));
+    const parts = FUELS.map((f) => ({ f, c: cheaperOf(f.key) })).filter((p) => p.c);
+
     if (!parts.length) {
-      // No fair comparison possible: state the fresh station's prices instead.
-      const fresh = Object.entries(latest).filter(([, s]) => s.available && minutesAgo(s.checked_at) <= COMPARE_MAX_H * 60);
-      const old = Object.entries(latest).filter(([, s]) => !fresh.some(([k]) => k === s.slug));
-      if (fresh.length) {
-        const [slug, s] = fresh[0];
-        v.appendChild(el('span', STATIONS[slug].cls, STATIONS[slug].label));
-        v.appendChild(document.createTextNode(': Natural 95 za ' + fmt(s.natural95) + ' Kč, nafta za ' + fmt(s.diesel) + ' Kč.'));
-      } else {
-        v.textContent = 'Ceny Tank ONO Teplice a Makro Trmice, kontrola každých 5 minut.';
-      }
-      old.forEach(([slug, s]) => {
-        v.appendChild(el('span', 'v-sub', s.available
-          ? 'Makro teď nemá čerstvou cenu (poslední z ' + dateTime(s.checked_at) + '), proto ho nesrovnávám.'.replace('Makro', slug === 'makro' ? 'Makro' : 'Tank ONO')
-          : (slug === 'makro' ? 'Makro' : 'Tank ONO') + ' zatím nemá žádnou cenu.'));
-      });
+      t('Ceny nejde porovnat, jedna ze stanic nemá čerstvý údaj.');
       return;
     }
     if (parts.length === 2 && parts.every((p) => p.c.same)) {
-      const s = latest['tank-ono'];
-      v.textContent = 'Obě stanice mají teď stejné ceny: Natural 95 za ' + fmt(s.natural95) + ' Kč, nafta za ' + fmt(s.diesel) + ' Kč.';
-      return;
-    }
-    const sameStation = parts.length === 2 && !parts[0].c.same && !parts[1].c.same && parts[0].c.slug === parts[1].c.slug;
-    if (sameStation) {
-      const st = STATIONS[parts[0].c.slug];
-      v.appendChild(document.createTextNode('Obojí teď natankuješ levněji '));
-      v.appendChild(el('span', st.cls, st.at));
-      v.appendChild(document.createTextNode(': Natural 95 o ' + fmt(parts[0].c.diff) + ' Kč, nafta o ' + fmt(parts[1].c.diff) + ' Kč.'));
+      t('Obě stanice mají stejné ceny.');
+    } else if (parts.length === 2 && !parts[0].c.same && !parts[1].c.same && parts[0].c.slug === parts[1].c.slug) {
+      const slug = parts[0].c.slug;
+      t('Natural 95 i nafta jsou levnější ');
+      v.appendChild(stationTag(slug, STATIONS[slug].at));
+      t(', o ' + fmt(parts[0].c.diff) + ' a ' + fmt(parts[1].c.diff) + ' Kč.');
     } else {
       parts.forEach(({ f, c }, i) => {
         const lead = i === 0 ? f.label : f.lower;
-        if (c.same) {
-          v.appendChild(document.createTextNode(lead + ' stojí na obou stejně'));
-        } else {
-          const st = STATIONS[c.slug];
-          v.appendChild(document.createTextNode(lead + ' je levnější '));
-          v.appendChild(el('span', st.cls, st.at));
-          v.appendChild(document.createTextNode(' o ' + fmt(c.diff) + ' Kč'));
+        if (c.same) t(lead + ' stojí na obou stejně');
+        else {
+          t(lead + ' je levnější ');
+          v.appendChild(stationTag(c.slug, STATIONS[c.slug].at));
+          t(' o ' + fmt(c.diff) + ' Kč');
         }
-        v.appendChild(document.createTextNode(i === parts.length - 1 ? '.' : ', '));
+        t(i === parts.length - 1 ? '.' : ', ');
       });
-    }
-    const stale = Object.entries(latest).filter(([, s]) => s.available && isStale(s));
-    if (stale.length) {
-      const [slug, s] = stale[0];
-      v.appendChild(el('span', 'v-sub', 'Cena ' + (slug === 'makro' ? 'Makra' : 'Tank ONO') + ' je z ' + dateTime(s.checked_at) + ', srovnání nemusí sedět.'));
     }
   }
 
   function renderPulse() {
     const p = $('#pulse');
-    const t = $('#pulse-text');
+    const txt = $('#pulse-text');
     const times = Object.values(latest).filter((s) => s.available).map((s) => new Date(s.checked_at).getTime());
-    if (!times.length) { t.textContent = 'bez dat'; p.classList.add('is-stale'); return; }
+    if (!times.length) { txt.textContent = 'Bez dat'; p.classList.add('is-stale'); return; }
     const newest = new Date(Math.max(...times)).toISOString();
     const stale = minutesAgo(newest) > STALE_MIN;
     p.classList.toggle('is-stale', stale);
-    t.textContent = (stale ? 'poslední kontrola ' : 'kontrola ') + (minutesAgo(newest) < 60 ? relTime(newest) : time(newest));
+    txt.textContent = (stale ? 'Poslední kontrola ' : 'Kontrola ') + when(newest);
   }
 
   async function loadLatest() {
@@ -191,21 +171,19 @@
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const { stations } = await res.json();
       latest = Object.fromEntries(stations.map((s) => [s.slug, s]));
-      stations.forEach(renderTotem);
+      stations.forEach(renderStation);
       renderVerdict();
       renderPulse();
-      firstRender = false;
     } catch (err) {
       console.error('loadLatest:', err);
-      $('#pulse-text').textContent = 'ceny se nepodařilo načíst';
+      $('#pulse-text').textContent = 'Ceny se nepodařilo načíst';
       $('#pulse').classList.add('is-stale');
     }
   }
 
-  // ── History: chart + change list ──
+  // ── History: chart + change table ──
 
   let history = null;
-  let chart = null;
   const view = { fuel: 'natural95', days: 90 };
 
   function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
@@ -229,39 +207,34 @@
   let shown = 12;
   function renderChanges() {
     const all = buildChanges();
-    const ol = $('#changes');
-    ol.replaceChildren();
-    $('#history-count').textContent = all.length ? all.length + (all.length === 1 ? ' změna' : all.length < 5 ? ' změny' : ' změn') + ' za rok' : '';
-    if (!all.length) {
-      ol.appendChild(el('li', 'changes-empty', 'Za poslední rok se ceny nezměnily.'));
+    const body = $('#changes');
+    body.replaceChildren();
+    const n = all.length;
+    $('#history-count').textContent = n ? n + (n === 1 ? ' změna' : n < 5 ? ' změny' : ' změn') + ' za rok' : '';
+    if (!n) {
+      const tr = el('tr');
+      const td = el('td', 'empty', 'Za poslední rok se ceny nezměnily.');
+      td.colSpan = 6;
+      tr.appendChild(td);
+      body.appendChild(tr);
     }
     all.slice(0, shown).forEach((c) => {
-      const li = el('li', 'change');
-      const when = el('span', 'change-when');
-      when.appendChild(document.createTextNode(dayMonth(c.at)));
-      when.appendChild(el('br'));
-      when.appendChild(document.createTextNode(time(c.at)));
-      li.appendChild(when);
-
-      const what = el('span', 'change-what');
-      const st = el('span', 'st');
-      const sw = el('i', 'sw ' + (c.slug === 'makro' ? 'sw-makro' : 'sw-ono'));
-      st.appendChild(sw);
-      st.appendChild(document.createTextNode(STATIONS[c.slug].short));
-      what.appendChild(st);
-      what.appendChild(el('span', 'fuel', ' ' + c.fuel.lower));
-      const pr = el('span', 'prices');
-      pr.appendChild(el('s', null, fmt(c.from)));
-      pr.appendChild(document.createTextNode(' → ' + fmt(c.to) + ' Kč'));
-      what.appendChild(pr);
-      li.appendChild(what);
-
+      const tr = el('tr');
+      const w = el('td', 'when');
+      w.appendChild(document.createTextNode(dayMonth(c.at) + ' '));
+      w.appendChild(el('span', 't', time(c.at)));
+      tr.appendChild(w);
+      const st = el('td');
+      st.appendChild(stationTag(c.slug, STATIONS[c.slug].short));
+      tr.appendChild(st);
+      tr.appendChild(el('td', null, c.fuel.label));
+      tr.appendChild(el('td', 'num was', fmt(c.from)));
+      tr.appendChild(el('td', 'num now', fmt(c.to)));
       const down = c.delta < 0;
-      li.appendChild(el('span', 'chip ' + (down ? 'dn' : 'up'), (down ? '↓ ' : '↑ ') + fmt(Math.abs(c.delta))));
-      ol.appendChild(li);
+      tr.appendChild(el('td', 'num delta ' + (down ? 'dn' : 'up'), (down ? '↓ ' : '↑ ') + fmt(Math.abs(c.delta))));
+      body.appendChild(tr);
     });
-    const more = $('#history-more');
-    more.hidden = all.length <= shown;
+    $('#history-more').hidden = n <= shown;
   }
 
   function seriesFor(slug) {
@@ -273,33 +246,28 @@
     if (!window.Chart || !history) return;
     const canvas = $('#priceChart');
     const min = Date.now() - view.days * 86400000;
-    const ink2 = cssVar('--ink-2');
+    const ink = cssVar('--ink');
+    const bg = cssVar('--bg');
     const muted = cssVar('--muted');
     const line = cssVar('--line');
-    const surface = cssVar('--surface');
+    const font = "'Archivo', 'Helvetica Neue', Arial, sans-serif";
 
     const ds = Object.keys(STATIONS).map((slug) => {
-      const color = cssVar(STATIONS[slug].cssVar);
+      const color = cssVar(STATIONS[slug].line);
       return {
         label: STATIONS[slug].label,
         data: seriesFor(slug),
         borderColor: color,
-        backgroundColor: (sc) => {
-          const { ctx, chartArea } = sc.chart;
-          if (!chartArea) return 'transparent';
-          const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          g.addColorStop(0, color + '33');
-          g.addColorStop(1, color + '00');
-          return g;
-        },
-        fill: 'origin',
+        backgroundColor: color,
+        fill: false,
         stepped: 'before',
         borderWidth: 2.5,
         pointRadius: 0,
         pointHoverRadius: 5,
         pointHoverBackgroundColor: color,
-        pointHoverBorderColor: surface,
+        pointHoverBorderColor: bg,
         pointHoverBorderWidth: 2,
+        pointStyle: 'rect',
       };
     });
 
@@ -309,30 +277,32 @@
       const before = d.data.filter((p) => p.x < min).pop();
       return (before ? [before, ...inside] : inside).map((p) => p.y);
     });
-    const yMin = allY.length ? Math.min(...allY) - 0.4 : undefined;
-    const yMax = allY.length ? Math.max(...allY) + 0.4 : undefined;
+    const yMin = allY.length ? Math.floor(Math.min(...allY) - 0.3) : undefined;
+    const yMax = allY.length ? Math.ceil(Math.max(...allY) + 0.3) : undefined;
 
     const opts = {
       responsive: true,
       maintainAspectRatio: false,
-      animation: chart || reduceMotion ? { duration: reduceMotion ? 0 : 450 } : { duration: 1100, easing: 'easeOutQuart' },
+      animation: reduceMotion ? false : { duration: 300 },
       interaction: { mode: 'nearest', axis: 'x', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: surface,
-          borderColor: line,
-          borderWidth: 1,
-          titleColor: muted,
-          bodyColor: cssVar('--ink'),
-          titleFont: { family: 'Bricolage Grotesque', size: 11, weight: '500' },
-          bodyFont: { family: 'Bricolage Grotesque', size: 13, weight: '600' },
+          backgroundColor: ink,
+          titleColor: bg,
+          bodyColor: bg,
+          cornerRadius: 2,
+          caretSize: 0,
+          titleFont: { family: font, size: 12, weight: '500' },
+          bodyFont: { family: font, size: 14, weight: '800' },
           padding: 10,
+          boxWidth: 10,
+          boxHeight: 10,
           boxPadding: 4,
-          usePointStyle: true,
           callbacks: {
             title: (items) => items.length ? dateTime(new Date(items[0].parsed.x).toISOString()) : '',
             label: (c) => ' ' + c.dataset.label + '  ' + fmt(c.parsed.y) + ' Kč',
+            labelColor: (c) => ({ borderColor: c.dataset.borderColor, backgroundColor: c.dataset.borderColor, borderWidth: 0 }),
           },
         },
       },
@@ -343,19 +313,20 @@
           max: Date.now(),
           ticks: {
             color: muted,
-            font: { family: 'Bricolage Grotesque', size: 11 },
+            font: { family: font, size: 12 },
             maxRotation: 0,
-            autoSkipPadding: 18,
+            autoSkipPadding: 20,
             maxTicksLimit: 7,
-            callback: (v) => new Date(v).toLocaleDateString('cs-CZ', { timeZone: TZ, day: 'numeric', month: view.days > 60 ? 'short' : 'numeric' }),
+            callback: (v) => new Date(v).toLocaleDateString('cs-CZ', { timeZone: TZ, day: 'numeric', month: 'numeric' }),
           },
           grid: { display: false },
-          border: { color: line },
+          border: { color: ink },
         },
         y: {
-          suggestedMin: yMin, suggestedMax: yMax,
-          ticks: { color: muted, font: { family: 'Barlow Condensed', size: 13, weight: '600' }, callback: (v) => fmt(v), maxTicksLimit: 6 },
-          grid: { color: line },
+          position: 'right',
+          min: yMin, max: yMax,
+          ticks: { color: muted, font: { family: font, size: 12 }, callback: (v) => fmt(v), maxTicksLimit: 6, padding: 8 },
+          grid: { color: line, drawTicks: false },
           border: { display: false },
         },
       },
@@ -392,11 +363,6 @@
     });
   });
   $('#history-more').addEventListener('click', () => { shown += 20; renderChanges(); });
-
-  // Re-theme the chart when the OS switches light/dark.
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (chart) { chart.destroy(); chart = null; renderChart(); }
-  });
 
   // ── Preferences (shared by e-mail + push) ──
 
@@ -441,7 +407,7 @@
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        say(msg, 'Hotovo. Pokud adresa ještě nebyla přihlášená, začnou ti chodit upozornění. Nastavení pak změníš odkazem v e-mailu.', 'ok');
+        say(msg, 'Hotovo. Nastavení změníš nebo odběr zrušíš odkazem v každém e-mailu.', 'ok');
         e.target.reset();
       } else if (res.status === 429) {
         say(msg, 'Moc pokusů za sebou. Zkus to za minutu.', 'err');
@@ -583,9 +549,11 @@
   // ── Boot + refresh ──
 
   loadLatest();
-  // Chart.js is deferred like this script; wait for it if needed.
-  if (window.Chart) loadHistory();
-  else window.addEventListener('load', loadHistory, { once: true });
+  // Chart.js is deferred like this script; wait for it (and the web font, so the canvas axes use it).
+  const fontsReady = () => (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve());
+  const boot = () => fontsReady().then(loadHistory);
+  if (window.Chart) boot();
+  else window.addEventListener('load', boot, { once: true });
 
   setInterval(loadLatest, 60_000);
   setInterval(loadHistory, 5 * 60_000);
