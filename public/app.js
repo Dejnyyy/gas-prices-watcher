@@ -190,13 +190,13 @@
 
   // Price stays flat until it changes, so each change is drawn as a step — but
   // with a short eased ramp (monotone curve, no overshoot) instead of a hard corner.
-  function series(span) {
+  function series(span, fuel) {
     const rows = history || [];
     const pts = [];
     let seg = null; // current flat segment: { x: when it started, y: price }
     rows.forEach((r, i) => {
       const x = new Date(r.checked_at).getTime();
-      const y = Number(r[view.fuel]);
+      const y = Number(r[fuel]);
       // Break the line across an observation gap instead of dating the change.
       if (r.gap && i > 0) {
         pts.push({ x: new Date(rows[i - 1].checked_at).getTime() + 1, y: null });
@@ -214,6 +214,16 @@
     return pts;
   }
 
+  // Price of a fuel valid at time t (last check at or before t).
+  function priceAt(fuel, t) {
+    let v = null;
+    for (const r of history || []) {
+      if (new Date(r.checked_at).getTime() > t) break;
+      v = Number(r[fuel]);
+    }
+    return v;
+  }
+
   function renderChart() {
     if (!window.Chart || !history) return;
     const canvas = $('#priceChart');
@@ -225,10 +235,13 @@
     const line = cssVar('--line');
     const font = "'Archivo', 'Helvetica Neue', Arial, sans-serif";
 
-    const color = cssVar('--ono-line');
-    const ds = [{
-      label: FUELS.find((f) => f.key === view.fuel).label,
-      data: series(Date.now() - min),
+    const both = view.fuel === 'both';
+    const fuels = both ? FUELS : FUELS.filter((f) => f.key === view.fuel);
+    const colorOf = (key) => (both && key === 'diesel' ? ink : cssVar('--ono-line'));
+    const ds = fuels.map((f) => { const color = colorOf(f.key); return {
+      label: f.label,
+      fuelKey: f.key,
+      data: series(Date.now() - min, f.key),
       borderColor: color,
       backgroundColor: color,
       fill: false,
@@ -241,7 +254,7 @@
       pointHoverBorderColor: bg,
       pointHoverBorderWidth: 2,
       pointStyle: 'rect',
-    }];
+    }; });
 
     // Y range from what is visible: points inside the window + the value entering it.
     const allY = ds.flatMap((d) => {
@@ -258,7 +271,12 @@
       animation: reduceMotion ? false : { duration: 300 },
       interaction: { mode: 'nearest', axis: 'x', intersect: false },
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: both,
+          position: 'top',
+          align: 'start',
+          labels: { color: ink, font: { family: font, size: 13, weight: '500' }, boxWidth: 18, boxHeight: 3, padding: 16 },
+        },
         tooltip: {
           backgroundColor: ink,
           titleColor: bg,
@@ -271,9 +289,14 @@
           boxWidth: 10,
           boxHeight: 10,
           boxPadding: 4,
+          // With both fuels, one tooltip lists both prices valid at that moment.
+          filter: (item, i) => !both || i === 0,
+          displayColors: !both,
           callbacks: {
             title: (items) => items.length ? dateTime(new Date(items[0].parsed.x).toISOString()) : '',
-            label: (c) => ' ' + c.dataset.label + '  ' + fmt(c.parsed.y) + ' Kč',
+            label: (c) => both
+              ? FUELS.map((f) => ' ' + f.label + '  ' + fmt(priceAt(f.key, c.parsed.x)) + ' Kč')
+              : ' ' + c.dataset.label + '  ' + fmt(c.parsed.y) + ' Kč',
             labelColor: (c) => ({ borderColor: c.dataset.borderColor, backgroundColor: c.dataset.borderColor, borderWidth: 0 }),
           },
         },
