@@ -188,15 +188,25 @@
     $('#history-more').hidden = n <= shown;
   }
 
-  function series() {
+  // Price stays flat until it changes, so each change is drawn as a step — but
+  // with a short eased ramp (monotone curve, no overshoot) instead of a hard corner.
+  function series(span) {
     const rows = history || [];
     const pts = [];
+    let prev = null;
     rows.forEach((r, i) => {
       const x = new Date(r.checked_at).getTime();
+      const y = Number(r[view.fuel]);
       // Break the line across an observation gap instead of dating the change.
-      if (r.gap && i > 0) pts.push({ x: new Date(rows[i - 1].checked_at).getTime() + 1, y: null });
-      pts.push({ x, y: Number(r[view.fuel]) });
+      if (r.gap && i > 0) { pts.push({ x: prev.x + 1, y: null }); prev = null; }
+      if (prev && prev.y !== y) {
+        const ramp = Math.min(span * 0.012, (x - prev.x) / 2);
+        pts.push({ x: x - ramp, y: prev.y });
+      }
+      pts.push({ x, y });
+      prev = { x, y };
     });
+    if (prev) pts.push({ x: Date.now(), y: prev.y });
     return pts;
   }
 
@@ -214,11 +224,11 @@
     const color = cssVar('--ono-line');
     const ds = [{
       label: FUELS.find((f) => f.key === view.fuel).label,
-      data: series(),
+      data: series(Date.now() - min),
       borderColor: color,
       backgroundColor: color,
       fill: false,
-      stepped: 'before',
+      cubicInterpolationMode: 'monotone',
       spanGaps: false,
       borderWidth: 2.5,
       pointRadius: 0,
