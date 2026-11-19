@@ -200,7 +200,7 @@
       // Break the line across an observation gap instead of dating the change.
       if (r.gap && i > 0) { pts.push({ x: prev.x + 1, y: null }); prev = null; }
       if (prev && prev.y !== y) {
-        const ramp = Math.min(span * 0.012, (x - prev.x) / 2);
+        const ramp = Math.min(span * 0.04, (x - prev.x) * 0.8);
         pts.push({ x: x - ramp, y: prev.y });
       }
       pts.push({ x, y });
