@@ -193,20 +193,24 @@
   function series(span) {
     const rows = history || [];
     const pts = [];
-    let prev = null;
+    let seg = null; // current flat segment: { x: when it started, y: price }
     rows.forEach((r, i) => {
       const x = new Date(r.checked_at).getTime();
       const y = Number(r[view.fuel]);
       // Break the line across an observation gap instead of dating the change.
-      if (r.gap && i > 0) { pts.push({ x: prev.x + 1, y: null }); prev = null; }
-      if (prev && prev.y !== y) {
-        const ramp = Math.min(span * 0.04, (x - prev.x) * 0.8);
-        pts.push({ x: x - ramp, y: prev.y });
+      if (r.gap && i > 0) {
+        pts.push({ x: new Date(rows[i - 1].checked_at).getTime() + 1, y: null });
+        seg = null;
+      }
+      if (seg && seg.y === y) return; // unchanged tick — the flat line already covers it
+      if (seg) {
+        const ramp = Math.min(span * 0.04, (x - seg.x) * 0.8);
+        pts.push({ x: x - ramp, y: seg.y });
       }
       pts.push({ x, y });
-      prev = { x, y };
+      seg = { x, y };
     });
-    if (prev) pts.push({ x: Date.now(), y: prev.y });
+    if (seg) pts.push({ x: Date.now(), y: seg.y });
     return pts;
   }
 
