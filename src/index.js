@@ -88,7 +88,7 @@ app.get('/api/stations/latest', async (req, res) => {
 });
 
 app.get('/api/history', async (req, res) => {
-  const days = Math.max(1, Math.min(parseInt(req.query.days, 10) || 30, 730));
+  const days = req.query.days === 'all' ? 36500 : Math.max(1, Math.min(parseInt(req.query.days, 10) || 30, 730));
   try {
     if (req.query.station === 'all') {
       const out = {};

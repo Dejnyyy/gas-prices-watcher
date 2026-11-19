@@ -152,16 +152,22 @@
     return list.reverse();
   }
 
+  function since() {
+    if (!history || !history.length) return '';
+    const d = new Date(history[0].checked_at);
+    return ' od ' + d.getDate() + '. ' + (d.getMonth() + 1) + '. ' + d.getFullYear();
+  }
+
   let shown = 12;
   function renderChanges() {
     const all = buildChanges();
     const body = $('#changes');
     body.replaceChildren();
     const n = all.length;
-    $('#history-count').textContent = n ? n + (n === 1 ? ' změna' : n < 5 ? ' změny' : ' změn') + ' za rok' : '';
+    $('#history-count').textContent = n ? n + (n === 1 ? ' změna' : n < 5 ? ' změny' : ' změn') + since() : '';
     if (!n) {
       const tr = el('tr');
-      const td = el('td', 'empty', 'Za poslední rok se ceny nezměnily.');
+      const td = el('td', 'empty', 'Ceny se zatím nezměnily.');
       td.colSpan = 5;
       tr.appendChild(td);
       body.appendChild(tr);
@@ -197,7 +203,8 @@
   function renderChart() {
     if (!window.Chart || !history) return;
     const canvas = $('#priceChart');
-    const min = Date.now() - view.days * 86400000;
+    const first = history.length ? new Date(history[0].checked_at).getTime() : Date.now();
+    const min = view.days === 'all' ? first : Date.now() - view.days * 86400000;
     const ink = cssVar('--ink');
     const bg = cssVar('--bg');
     const muted = cssVar('--muted');
@@ -294,7 +301,7 @@
 
   async function loadHistory() {
     try {
-      const res = await fetch('/api/history?station=' + SLUG + '&days=365', { cache: 'no-store' });
+      const res = await fetch('/api/history?station=' + SLUG + '&days=all', { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       history = await res.json();
       renderChanges();
@@ -309,7 +316,7 @@
       const group = b.parentElement;
       group.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
       if (b.dataset.fuel) view.fuel = b.dataset.fuel;
-      if (b.dataset.days) view.days = Number(b.dataset.days);
+      if (b.dataset.days) view.days = b.dataset.days === 'all' ? 'all' : Number(b.dataset.days);
       renderChart();
     });
   });

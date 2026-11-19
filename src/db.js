@@ -82,11 +82,11 @@ async function getRecentForStation(stationId, limit = 60) {
 // Rows in the window plus the last row before it, so a chart can start at the
 // price that was valid when the window opened.
 async function getHistoryForStation(stationId, days = 30) {
-  const d = Math.max(1, Math.min(parseInt(days, 10) || 30, 730));
+  const d = Math.max(1, Math.min(parseInt(days, 10) || 30, 36500));
   const [rows] = await pool.query(
     `SELECT id, station_id, checked_at, natural95, diesel, changed FROM price_checks
      WHERE station_id = ? AND checked_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-     ORDER BY checked_at ASC, id ASC LIMIT 2000`,
+     ORDER BY checked_at ASC, id ASC LIMIT 20000`,
     [stationId, d]
   );
   const [before] = await pool.query(
